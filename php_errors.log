@@ -1,0 +1,21 @@
+[26-Aug-2025 14:20:56 Europe/Berlin] Error in fetch_posts.php: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'id' in 'field list' at C:\xampp\htdocs\uniwhisper\fetch_posts.php:26
+[26-Aug-2025 14:31:12 Europe/Berlin] Error in fetch_posts.php: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'id' in 'field list' at C:\xampp\htdocs\uniwhisper\fetch_posts.php:26
+[26-Aug-2025 14:31:17 Europe/Berlin] Error in fetch_posts.php: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'id' in 'field list' at C:\xampp\htdocs\uniwhisper\fetch_posts.php:26
+[26-Aug-2025 14:31:33 Europe/Berlin] Error in fetch_posts.php: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'id' in 'field list' at C:\xampp\htdocs\uniwhisper\fetch_posts.php:26
+[26-Aug-2025 14:32:18 Europe/Berlin] Error in fetch_posts.php: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'id' in 'field list' at C:\xampp\htdocs\uniwhisper\fetch_posts.php:26
+[26-Aug-2025 14:33:16 Europe/Berlin] Database connection error: SQLSTATE[HY000] [1045] Access denied for user 'your_username'@'localhost' (using password: YES)
+[26-Aug-2025 14:33:51 Europe/Berlin] Error in fetch_posts.php: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'id' in 'field list' at C:\xampp\htdocs\uniwhisper\fetch_posts.php:26
+[26-Aug-2025 14:34:34 Europe/Berlin] Error in fetch_posts.php: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'id' in 'field list' at C:\xampp\htdocs\uniwhisper\fetch_posts.php:26
+[26-Aug-2025 14:35:04 Europe/Berlin] Error in fetch_posts.php: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'id' in 'field list' at C:\xampp\htdocs\uniwhisper\fetch_posts.php:26
+[26-Aug-2025 14:35:38 Europe/Berlin] Error in fetch_posts.php: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'id' in 'field list' at C:\xampp\htdocs\uniwhisper\fetch_posts.php:26
+[26-Aug-2025 14:38:37 Europe/Berlin] Error in fetch_posts.php: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'id' in 'field list' at C:\xampp\htdocs\uniwhisper\fetch_posts.php:26
+[26-Aug-2025 14:39:49 Europe/Berlin] Error in fetch_posts.php: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'id' in 'field list' at C:\xampp\htdocs\uniwhisper\fetch_posts.php:26
+[26-Aug-2025 14:39:55 Europe/Berlin] Error in fetch_posts.php: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'id' in 'field list' at C:\xampp\htdocs\uniwhisper\fetch_posts.php:26
+[26-Aug-2025 14:40:03 Europe/Berlin] Error in fetch_posts.php: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'id' in 'field list' at C:\xampp\htdocs\uniwhisper\fetch_posts.php:26
+[26-Aug-2025 14:40:07 Europe/Berlin] Error in fetch_posts.php: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'id' in 'field list' at C:\xampp\htdocs\uniwhisper\fetch_posts.php:26
+[26-Aug-2025 14:45:16 Europe/Berlin] Error in fetch_posts.php: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'id' in 'field list' at C:\xampp\htdocs\uniwhisper\fetch_posts.php:26
+[26-Aug-2025 14:45:22 Europe/Berlin] Error in fetch_posts.php: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'id' in 'field list' at C:\xampp\htdocs\uniwhisper\fetch_posts.php:26
+[26-Aug-2025 14:45:26 Europe/Berlin] Error in fetch_posts.php: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'id' in 'field list' at C:\xampp\htdocs\uniwhisper\fetch_posts.php:26
+[26-Aug-2025 14:46:10 Europe/Berlin] Error in fetch_posts.php: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'id' in 'field list' at C:\xampp\htdocs\uniwhisper\fetch_posts.php:26
+[26-Aug-2025 14:47:51 Europe/Berlin] Error in fetch_posts.php: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'id' in 'field list' at C:\xampp\htdocs\uniwhisper\fetch_posts.php:26
+[26-Aug-2025 14:47:58 Europe/Berlin] Error in fetch_posts.php: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'id' in 'field list' at C:\xampp\htdocs\uniwhisper\fetch_posts.php:26

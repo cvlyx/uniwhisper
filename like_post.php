@@ -33,10 +33,11 @@ try {
     }
     
     // Check if post exists
-    $stmt = $pdo->prepare("SELECT id FROM posts WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT id, anon_id as post_owner_id FROM posts WHERE id = ?");
     $stmt->execute([$post_id]);
+    $post = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    if (!$stmt->fetch()) {
+    if (!$post) {
         http_response_code(404);
         echo json_encode(['error' => 'Post not found']);
         exit;
@@ -61,6 +62,15 @@ try {
         // Like the post
         $stmt = $pdo->prepare("INSERT INTO likes (post_id, anon_id) VALUES (?, ?)");
         $stmt->execute([$post_id, $anon_id]);
+
+        // Create notification for the post owner (unless the liker is the post owner)
+        if ($post['post_owner_id'] !== $anon_id) {
+            $stmt = $pdo->prepare("
+                INSERT INTO notifications (anon_id, type, source_id, post_id) 
+                VALUES (?, 'like', ?, ?)
+            ");
+            $stmt->execute([$post['post_owner_id'], $anon_id, $post_id]);
+        }
         
         echo json_encode([
             'success' => true,

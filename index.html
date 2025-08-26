@@ -3,67 +3,708 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UniWhisper</title>
+    <title>UniWhisper - Anonymous University Gossip</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    
+    <!-- AOS (Animate On Scroll) -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom scrollbar -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simplebar@latest/dist/simplebar.css" />
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            200: '#ddd6fe',
+                            300: '#c4b5fd',
+                            400: '#a78bfa',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                            800: '#5b21b6',
+                            900: '#4c1d95',
+                        },
+                        secondary: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        },
+                        accent: {
+                            50: '#fefce8',
+                            100: '#fef9c3',
+                            200: '#fef08a',
+                            300: '#fde047',
+                            400: '#facc15',
+                            500: '#eab308',
+                            600: '#ca8a04',
+                            700: '#a16207',
+                            800: '#854d0e',
+                            900: '#713f12',
+                        },
+                        neutral: {
+                            50: '#fafafa',
+                            100: '#f4f4f5',
+                            200: '#e4e4e7',
+                            300: '#d4d4d8',
+                            400: '#a1a1aa',
+                            500: '#71717a',
+                            600: '#52525b',
+                            700: '#3f3f46',
+                            800: '#27272a',
+                            900: '#18181b',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Playfair Display', 'serif']
+                    },
+                    boxShadow: {
+                        'glass': '0 4px 30px rgba(0, 0, 0, 0.1)',
+                        'elegant': '0 10px 40px rgba(139, 92, 246, 0.15)',
+                        'elegant-lg': '0 15px 50px rgba(139, 92, 246, 0.2)',
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-soft': 'pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'spin-slow': 'spin 3s linear infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        'pulse-soft': {
+                            '0%, 100%': { opacity: 1 },
+                            '50%': { opacity: 0.7 },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f5f3ff 0%, #f0fdfa 50%, #fefce8 100%);
+            min-height: 100vh;
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        }
+        
+        .gradient-bg-secondary {
+            background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .gradient-text-secondary {
+            background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .post-card {
+            transition: all 0.3s ease;
+            overflow: hidden;
+            border-left: 4px solid;
+            border-image: linear-gradient(to bottom, #8b5cf6, #0d9488) 1;
+        }
+        
+        .post-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: all 0.6s ease;
+        }
+        
+        .post-card:hover::before {
+            left: 100%;
+        }
+        
+        .post-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(139, 92, 246, 0.15), 0 10px 10px -5px rgba(139, 92, 246, 0.1);
+        }
+        
+        .like-btn, .comment-btn, .save-btn, .follow-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .like-btn:hover, .comment-btn:hover, .save-btn:hover, .follow-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .like-btn.liked {
+            color: #ef4444;
+        }
+        
+        .save-btn.saved {
+            color: #eab308;
+        }
+
+        .follow-btn.followed {
+            color: #0d9488;
+        }
+        
+        textarea {
+            resize: none;
+            transition: all 0.3s ease;
+        }
+        
+        textarea:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.3);
+        }
+        
+        .animate-ripple {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .animate-ripple:after {
+            content: "";
+            display: block;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 120px;
+            height: 120px;
+            margin-left: -60px;
+            margin-top: -60px;
+            background: rgba(139, 92, 246, 0.3);
+            border-radius: 100%;
+            transform: scale(0);
+            opacity: 1;
+            animation: ripple 1s forwards;
+        }
+        
+        @keyframes ripple {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+        
+        .toast {
+            animation: slideInRight 0.5s forwards, fadeOut 0.5s forwards 2.5s;
+        }
+        
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; visibility: hidden; }
+        }
+        
+        .typing-indicator {
+            display: inline-block;
+            position: relative;
+            width: 80px;
+            height: 30px;
+        }
+        
+        .typing-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 3px;
+            background: #8b5cf6;
+            animation: typing 1.4s infinite both;
+        }
+        
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+            background: #0d9488;
+        }
+        
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+            background: #eab308;
+        }
+        
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+        
+        .wave {
+            animation: wave 2s linear infinite;
+        }
+        
+        @keyframes wave {
+            0% { transform: rotate(0deg); }
+            10% { transform: rotate(14deg); }
+            20% { transform: rotate(-8deg); }
+            30% { transform: rotate(14deg); }
+            40% { transform: rotate(-4deg); }
+            50% { transform: rotate(10deg); }
+            60% { transform: rotate(0deg); }
+            100% { transform: rotate(0deg); }
+        }
+        
+        .floating-element {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .elegant-card {
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 10px 40px rgba(139, 92, 246, 0.15);
+        }
+        
+        .shimmer {
+            background: linear-gradient(90deg, #f5f3ff 0%, #ede9fe 50%, #f5f3ff 100%);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        .pulse-ring {
+            display: block;
+            border-radius: 50%;
+            animation: pulse-ring 2s infinite;
+        }
+        
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(139, 92, 246, 0); }
+            100% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+        }
+        
+        .heartbeat {
+            animation: heartbeat 1.5s ease-in-out infinite both;
+        }
+        
+        @keyframes heartbeat {
+            from { transform: scale(1); transform-origin: center center; animation-timing-function: ease-out; }
+            10% { transform: scale(0.91); animation-timing-function: ease-in; }
+            17% { transform: scale(0.98); animation-timing-function: ease-out; }
+            33% { transform: scale(0.87); animation-timing-function: ease-in; }
+            45% { transform: scale(1); animation-timing-function: ease-out; }
+        }
+
+        /* Post images - larger */
+        .post-image {
+            max-width: 100%;
+            max-height: 600px;
+            border-radius: 12px;
+            object-fit: cover;
+        }
+
+        /* Comment images - medium */
+        .comment-image {
+            max-width: 80%;
+            max-height: 400px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        /* Reply images - smaller */
+        .reply-image {
+            max-width: 60%;
+            max-height: 300px;
+            border-radius: 6px;
+            object-fit: cover;
+        }
+
+        /* Media containers */
+        .media-container {
+            margin-top: 10px;
+            display: flex;
+            justify-content: center;
+        }
+
+        /* Reply styling */
+        .reply {
+            margin-left: 40px;
+            padding-left: 15px;
+            border-left: 2px solid #e4e4e7;
+            margin-top: 10px;
+        }
+
+        /* Comment actions */
+        .comment-actions, .reply-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 8px;
+        }
+
+        .reply-btn, .view-replies-btn {
+            background: none;
+            border: none;
+            color: #8b5cf6;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .reply-btn:hover, .view-replies-btn:hover {
+            text-decoration: underline;
+        }
+
+        /* Reply form */
+        .reply-form {
+            margin-left: 40px;
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 8px;
+        }
+
+        .reply-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #e4e4e7;
+            border-radius: 6px;
+            resize: vertical;
+            min-height: 40px;
+        }
+
+        .reply-submit {
+            margin-top: 8px;
+            padding: 6px 12px;
+            background: #8b5cf6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .reply-cancel {
+            margin-top: 8px;
+            margin-left: 8px;
+            padding: 6px 12px;
+            background: #a1a1aa;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        /* User info styling */
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .user-name {
+            font-weight: 500;
+            color: #3f3f46;
+        }
+
+        .timestamp {
+            font-size: 12px;
+            color: #a1a1aa;
+        }
+    </style>
 </head>
-<body class="bg-gray-100">
-    <div class="container mx-auto px-4 py-8 max-w-3xl">
-        <header class="mb-8">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center">
-                    <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-                        UW
+<body class="text-neutral-800 overflow-x-hidden ornament">
+    <!-- Background elements -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div class="absolute -top-40 -right-40 w-80 h-80 bg-primary-300 rounded-full opacity-10 blur-3xl animate-float"></div>
+        <div class="absolute top-1/3 -left-20 w-64 h-64 bg-secondary-300 rounded-full opacity-10 blur-3xl animate-float" style="animation-delay: 2s;"></div>
+        <div class="absolute bottom-0 right-1/4 w-72 h-72 bg-accent-300 rounded-full opacity-10 blur-3xl animate-float" style="animation-delay: 4s;"></div>
+    </div>
+
+    <div class="min-h-screen pb-16 relative z-10">
+        <!-- Header -->
+        <header class="sticky top-0 z-40 glass-effect shadow-lg">
+            <div class="container mx-auto px-4 py-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-12 h-12 gradient-bg rounded-xl flex items-center justify-center text-white text-2xl font-bold shadow-lg transform hover:scale-105 transition-transform duration-300 wave pulse-ring">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <div data-aos="fade-right">
+                            <h1 class="text-2xl font-bold font-serif gradient-text">UniWhisper</h1>
+                            <p class="text-neutral-600 text-sm"><span class="typing-indicator"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></span> Anonymous campus whispers</p>
+                        </div>
                     </div>
-                    <div class="ml-4">
-                        <h1 class="text-2xl font-bold">UniWhisper</h1>
-                        <p class="text-gray-600">Anonymous University Gossip</p>
+                    <div class="bg-white/80 px-4 py-2 rounded-full shadow-md transform hover:scale-105 transition-transform duration-300" data-aos="fade-left">
+                        <p id="user-status" class="text-sm font-medium text-neutral-700"><i class="fas fa-user-secret mr-1 text-primary-600"></i> Anonymous</p>
+                        <p id="user-id" class="text-sm text-neutral-500">ID: Loading...</p>
                     </div>
-                </div>
-                <div>
-                    <p id="user-status" class="text-gray-600">Anonymous</p>
                 </div>
             </div>
         </header>
 
-        <main>
-            <section class="mb-8">
-                <form id="post-form" class="bg-white p-6 rounded-lg shadow">
-                    <h2 class="text-lg font-semibold mb-4">Share your thoughts anonymously</h2>
-                    <textarea id="post-content" class="w-full p-3 border rounded-lg" rows="4" placeholder="What's happening on campus? Share your thoughts, rumors, or observations..."></textarea>
-                    <div class="flex justify-between items-center mt-2">
-                        <span id="char-count" class="text-sm text-gray-500">0/1000 characters</span>
-                        <button id="submit-btn" type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-lg disabled:bg-gray-400" disabled>Post Anonymously</button>
+        <main class="container mx-auto px-4 py-8 max-w-3xl">
+            <!-- Feed Section -->
+            <section id="feed-section" class="section-content space-y-5">
+                <!-- Post Form -->
+                <div class="mb-8" data-aos="fade-up" data-aos-delay="100">
+                    <div class="glass-effect rounded-2xl shadow-xl overflow-hidden elegant-card">
+                        <div class="px-6 py-4 border-b border-neutral-100/50">
+                            <h2 class="text-lg font-semibold text-neutral-700"><i class="fas fa-pencil-alt mr-2 text-primary-500"></i> Share your thoughts anonymously</h2>
+                        </div>
+                        <form id="post-form" class="p-6">
+                            <textarea id="post-content" class="w-full p-4 border border-neutral-200/50 rounded-xl focus:border-primary-300 transition-all duration-300 glass-effect" rows="4" placeholder="What's happening on campus? Share your thoughts, rumors, or observations... Use @username to mention users." maxlength="1000"></textarea>
+                            <div class="mb-4">
+                                <label for="post-media" class="block text-neutral-700 text-sm font-medium mb-2">Add Image or Video</label>
+                                <input type="file" id="post-media" name="media" accept="image/*,video/*" class="w-full p-3 border border-neutral-200/50 rounded-xl focus:border-primary-300 glass-effect">
+                                <p class="text-xs text-neutral-500 mt-1">Max 5MB, JPG/PNG/GIF/MP4</p>
+                            </div>
+                            <div class="flex justify-between items-center mt-4">
+                                <span id="char-count" class="text-sm text-neutral-500 font-medium">0/1000 characters</span>
+                                <button id="submit-btn" type="submit" class="gradient-bg text-white px-5 py-2.5 rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none animate-ripple heartbeat" disabled>
+                                    <i class="fas fa-paper-plane mr-2"></i> Post Anonymously
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                </form>
+                </div>
+
+                <!-- Feed Content -->
+                <div id="feed-section-content" class="space-y-5" data-aos="fade-up" data-aos-delay="200">
+                    <div id="no-posts" class="glass-effect rounded-2xl shadow-lg p-8 max-w-md mx-auto elegant-card text-center">
+                        <div class="w-16 h-16 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center mx-auto mb-4 floating-element">
+                            <i class="fas fa-comment-slash text-2xl"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold text-neutral-700 mb-2">No whispers yet</h3>
+                        <p class="text-neutral-500 mb-4">Be the first to share something on UniWhisper!</p>
+                        <button id="create-first-post" class="gradient-bg text-white px-4 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 animate-ripple">
+                            <i class="fas fa-plus mr-2"></i> Create First Post
+                        </button>
+                    </div>
+                    <div id="posts-container" class="space-y-6 hidden"></div>
+                </div>
             </section>
 
-            <section id="posts" class="space-y-6">
-                <div id="loading-posts" class="text-center text-gray-500">Loading posts...</div>
+            <!-- Explore Section -->
+            <section id="explore-section" class="section-content hidden space-y-8">
+                <h2 class="text-2xl font-bold font-serif gradient-text mb-6" data-aos="fade-right">Explore UniWhisper</h2>
+                <div id="explore-content" class="space-y-8">
+                    <div id="loading-explore" class="text-center py-10">
+                        <div class="inline-flex items-center justify-center glass-effect rounded-2xl shadow px-6 py-4">
+                            <div class="animate-pulse-soft mr-3">
+                                <div class="h-5 w-5 bg-primary-400 rounded-full"></div>
+                            </div>
+                            <p class="text-neutral-600 font-medium">Loading explore data...</p>
+                        </div>
+                    </div>
+                </div>
             </section>
 
-            <section id="no-posts" class="hidden text-center text-gray-500">
-                <p>No posts yet</p>
-                <p>Be the first to share something on UniWhisper!</p>
+            <!-- Notifications Section -->
+            <section id="notifications-section" class="section-content hidden space-y-4">
+                <h2 class="text-2xl font-bold font-serif gradient-text mb-6" data-aos="fade-right">Your Notifications</h2>
+                <div id="notifications-container" class="space-y-4">
+                    <div class="glass-effect rounded-2xl shadow-lg p-8 max-w-md mx-auto elegant-card text-center">
+                        <div class="w-16 h-16 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center mx-auto mb-4 floating-element">
+                            <i class="fas fa-bell-slash text-2xl"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold text-neutral-700 mb-2">No new notifications</h3>
+                        <p class="text-neutral-500 mb-4">You're all caught up!</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Profile Section -->
+            <section id="profile-section" class="section-content hidden space-y-8">
+                <h2 class="text-2xl font-bold font-serif gradient-text mb-6" data-aos="fade-right">Your Profile</h2>
+                <div id="profile-content">
+                    <div class="glass-effect rounded-2xl shadow-xl p-6 elegant-card" data-aos="fade-up" data-aos-delay="100">
+                        <div class="flex items-center space-x-4 mb-4">
+                            <img id="profile-picture-display" src="https://via.placeholder.com/100x100/f3f4f6/6b7280?text=A" alt="Profile Picture" class="w-24 h-24 rounded-full object-cover border-4 border-primary-300 shadow-md">
+                            <div>
+                                <h3 id="profile-display-name" class="text-2xl font-bold text-neutral-800">Anonymous User</h3>
+                                <p id="user-id" class="text-neutral-500 text-sm">
+                                    <span class="font-semibold">ID:</span> <span id="profile-anon-id">Loading...</span> 
+                                    <button id="copy-id-btn" class="ml-2 text-primary-500 hover:text-primary-700 text-xs"><i class="fas fa-copy"></i> Copy</button>
+                                </p>
+                                <p id="profile-created-at" class="text-neutral-500 text-sm">Joined: Loading...</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-4 text-center mt-6">
+                            <div>
+                                <p id="profile-post-count" class="text-2xl font-bold gradient-text">0</p>
+                                <p class="text-neutral-500 text-sm">Posts</p>
+                            </div>
+                            <div>
+                                <p id="profile-comment-count" class="text-2xl font-bold gradient-text">0</p>
+                                <p class="text-neutral-500 text-sm">Comments</p>
+                            </div>
+                            <div>
+                                <p id="profile-received-likes" class="text-2xl font-bold gradient-text">0</p>
+                                <p class="text-neutral-500 text-sm">Received Likes</p>
+                            </div>
+                        </div>
+                        <button id="edit-profile-btn" class="mt-6 gradient-bg text-white px-5 py-2 rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 animate-ripple">
+                            <i class="fas fa-edit mr-2"></i> Edit Profile
+                        </button>
+                    </div>
+                </div>
+                <div id="edit-profile-form" class="hidden glass-effect rounded-2xl shadow-xl p-6 elegant-card" data-aos="fade-up" data-aos-delay="200">
+                    <h3 class="text-xl font-semibold text-neutral-700 mb-4"><i class="fas fa-edit mr-2 text-primary-500"></i> Edit Profile</h3>
+                    <form id="profile-form">
+                        <div class="mb-4">
+                            <label for="edit-display-name" class="block text-neutral-700 text-sm font-medium mb-2">Display Name</label>
+                            <input type="text" id="edit-display-name" name="display_name" class="w-full p-3 border border-neutral-200/50 rounded-xl focus:border-primary-300 glass-effect" placeholder="Your anonymous name (optional)" maxlength="50">
+                        </div>
+                        <div class="mb-4">
+                            <label for="edit-profile-picture" class="block text-neutral-700 text-sm font-medium mb-2">Profile Picture</label>
+                            <input type="file" id="edit-profile-picture" name="profile_picture" accept="image/*" class="w-full p-3 border border-neutral-200/50 rounded-xl focus:border-primary-300 glass-effect">
+                            <p class="text-xs text-neutral-500 mt-1">Max 2MB, JPG/PNG/GIF</p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button type="button" id="cancel-edit-profile-btn" class="flex-1 text-neutral-600 px-4 py-2 font-medium hover:text-neutral-800 transition-colors duration-200">Cancel</button>
+                            <button type="submit" id="save-profile-btn" class="flex-1 gradient-bg text-white px-5 py-2 rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 animate-ripple">
+                                <i class="fas fa-save mr-2"></i> Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="glass-effect rounded-2xl shadow-xl p-6 elegant-card" data-aos="fade-up" data-aos-delay="300">
+                    <h3 class="text-xl font-semibold text-neutral-700 mb-4"><i class="fas fa-history mr-2 text-secondary-500"></i> Your Recent Whispers</h3>
+                    <div id="profile-recent-posts-container" class="space-y-4">
+                        <p class="text-neutral-500 text-center">Loading your recent posts...</p>
+                    </div>
+                    <div id="no-profile-posts" class="hidden text-center py-8">
+                        <p class="text-neutral-500">You haven't made any posts yet.</p>
+                    </div>
+                </div>
             </section>
         </main>
 
-        <div id="toast-container" class="fixed bottom-4 right-4 space-y-2"></div>
-    </div>
+        <!-- Toast Container -->
+        <div id="toast-container" class="fixed bottom-4 right-4 space-y-3 z-50" data-simplebar></div>
 
-    <div id="comment-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
-        <div class="bg-white p-6 rounded-lg w-full max-w-md">
-            <h3 class="text-lg font-semibold mb-4">Add Comment</h3>
-            <textarea id="comment-content" class="w-full p-3 border rounded-lg" rows="4" placeholder="Write your comment..."></textarea>
-            <div class="flex justify-between items-center mt-2">
-                <span id="comment-char-count" class="text-sm text-gray-500">0/500 characters</span>
-                <div>
-                    <button id="cancel-comment" class="text-gray-600 px-4 py-2 mr-2">Cancel</button>
-                    <button id="submit-comment" class="bg-blue-500 text-white px-4 py-2 rounded-lg disabled:bg-gray-400" disabled>Comment</button>
+        <!-- Comment Modal -->
+        <div id="comment-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden backdrop-blur-sm">
+            <div class="glass-effect rounded-2xl shadow-xl w-full max-w-md overflow-hidden transform scale-95 transition-all duration-300 elegant-card" id="comment-modal-inner">
+                <div class="px-6 py-4 border-b border-neutral-100/50">
+                    <h3 class="text-lg font-semibold text-neutral-700"><i class="fas fa-comment mr-2 text-primary-500"></i> Add Comment</h3>
                 </div>
+                <div class="p-6">
+                    <textarea id="comment-content" class="w-full p-4 border border-neutral-200/50 rounded-xl focus:border-primary-300 transition-all duration-300 glass-effect" rows="4" placeholder="Write your comment... Use @username to mention users." maxlength="500"></textarea>
+                    <div class="mb-4">
+                        <label for="comment-media" class="block text-neutral-700 text-sm font-medium mb-2">Add Image or Video</label>
+                        <input type="file" id="comment-media" name="media" accept="image/*,video/*" class="w-full p-3 border border-neutral-200/50 rounded-xl focus:border-primary-300 glass-effect">
+                        <p class="text-xs text-neutral-500 mt-1">Max 5MB, JPG/PNG/GIF/MP4</p>
+                    </div>
+                    <div class="flex justify-between items-center mt-4">
+                        <span id="comment-char-count" class="text-sm text-neutral-500 font-medium">0/500 characters</span>
+                        <div>
+                            <button id="cancel-comment" class="text-neutral-600 px-4 py-2 mr-2 font-medium hover:text-neutral-800 transition-colors duration-200">Cancel</button>
+                            <button id="submit-comment" class="gradient-bg text-white px-4 py-2 rounded-xl font-medium shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none animate-ripple" disabled>
+                                Comment
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Floating Action Button -->
+        <div class="fixed bottom-20 right-6 z-30">
+            <button id="fab-post" class="w-14 h-14 gradient-bg text-white rounded-full shadow-lg flex items-center justify-center text-xl hover:shadow-xl transition-all duration-300 transform hover:scale-110 animate-ripple wave pulse-ring">
+                <i class="fas fa-plus"></i>
+            </button>
+        </div>
+        
+        <!-- Navigation Tabs -->
+        <div class="fixed bottom-0 left-0 right-0 glass-effect shadow-lg py-3 z-30">
+            <div class="container mx-auto px-4 flex justify-around">
+                <button id="nav-feed" class="nav-btn flex flex-col items-center text-primary-600 transition-all duration-300 transform hover:scale-110">
+                    <i class="fas fa-home text-xl"></i>
+                    <span class="text-xs mt-1">Feed</span>
+                </button>
+                <button id="nav-explore" class="nav-btn flex flex-col items-center text-neutral-500 transition-all duration-300 transform hover:scale-110">
+                    <i class="fas fa-search text-xl"></i>
+                    <span class="text-xs mt-1">Explore</span>
+                </button>
+                <button id="nav-notifications" class="nav-btn relative flex flex-col items-center text-neutral-500 transition-all duration-300 transform hover:scale-110">
+                    <i class="fas fa-bell text-xl"></i>
+                    <span class="text-xs mt-1">Notifications</span>
+                    <span id="notification-badge" class="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full hidden">0</span>
+                </button>
+                <button id="nav-profile" class="nav-btn flex flex-col items-center text-neutral-500 transition-all duration-300 transform hover:scale-110">
+                    <i class="fas fa-user text-xl"></i>
+                    <span class="text-xs mt-1">Profile</span>
+                </button>
             </div>
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <!-- Scripts -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/simplebar@latest/dist/simplebar.min.js"></script>
+    <script>
+        // Initialize AOS
+        AOS.init({
+            duration: 800,
+            easing: 'ease-out-quart',
+            once: true,
+            offset: 50
+        });
+        
+        // Initialize custom scrollbar
+        new SimpleBar(document.getElementById('toast-container'));
+
+        // FAB click handler
+        document.getElementById('fab-post').addEventListener('click', () => {
+            document.getElementById('post-content').focus();
+        });
+    </script>
+    <script src="app.js" defer></script>
 </body>
 </html>
