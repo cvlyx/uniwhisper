@@ -1,9 +1,9 @@
 class UniWhisper {
     constructor() {
         // API base URL - adjust for your server
-        this.apiBase = 'http://localhost/uniwhisper'; // For Apache
+        //this.apiBase = 'http://localhost/uniwhisper'; // For Apache
         // this.apiBase = 'http://localhost:8000'; // For php -S localhost:8000
-
+        this.apiBase = 'https://uniwhisper.onrender.com';
         // User management
         this.anonId = null;
         this.currentCommentPostId = null;
