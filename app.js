@@ -1,9 +1,8 @@
 class UniWhisper {
     constructor() {
-        // API base URL - adjust for your server
-        //this.apiBase = 'http://localhost/uniwhisper'; // For Apache
-        // this.apiBase = 'http://localhost:8000'; // For php -S localhost:8000
+        // API base URL - set to Render deployment
         this.apiBase = 'https://uniwhisper.onrender.com';
+
         // User management
         this.anonId = null;
         this.currentCommentPostId = null;
@@ -285,7 +284,7 @@ class UniWhisper {
         `;
 
         try {
-            const data = await this.apiRequest(`fetch_posts.php?anon_id=${encodeURIComponent(this.anonId)}`);
+            const data = await this.apiRequest(`fetch_posts.php?anon_id=${encodeURIComponent(this.anonId || 'null')}`);
             const posts = data.posts || [];
 
             if (posts.length === 0) {
@@ -390,7 +389,7 @@ class UniWhisper {
 
         try {
             if (forceRefresh || !this.exploreData) {
-                this.exploreData = await this.apiRequest(`fetch_explore.php?anon_id=${encodeURIComponent(this.anonId)}`);
+                this.exploreData = await this.apiRequest(`fetch_explore.php?anon_id=${encodeURIComponent(this.anonId || 'null')}`);
             }
 
             const { trending_posts, popular_tags, active_users } = this.exploreData;
@@ -427,7 +426,7 @@ class UniWhisper {
                     <div class="space-y-2">
                         ${active_users && active_users.length ? active_users.map(user => `
                             <div class="flex items-center space-x-2">
-                                <img src="${user.profile_picture}" alt="Profile" class="w-10 h-10 rounded-full">
+                                <img src="${user.profile_picture || 'https://via.placeholder.com/100x100/F3F4F6/6B7280?text=A'}" alt="Profile" class="w-10 h-10 rounded-full">
                                 <span class="text-neutral-800">${this.escapeHtml(user.display_name)}</span>
                                 <span class="text-sm text-neutral-500">(${user.post_count} posts)</span>
                             </div>
@@ -483,7 +482,7 @@ class UniWhisper {
 
         try {
             if (forceRefresh || !this.notifications) {
-                const data = await this.apiRequest(`fetch_notifications.php?anon_id=${encodeURIComponent(this.anonId)}`);
+                const data = await this.apiRequest(`fetch_notifications.php?anon_id=${encodeURIComponent(this.anonId || 'null')}`);
                 this.notifications = data.notifications || [];
                 const badge = document.getElementById('notification-badge');
                 if (badge) {
@@ -563,7 +562,7 @@ class UniWhisper {
         profileContent.innerHTML = `
             <div class="inline-flex items-center justify-center glass-effect rounded-2xl shadow px-6 py-4">
                 <div class="animate-pulse-soft mr-3">
-                    <div class="h-5 w-5 bg-primary-400 rounded-full"></div>
+                    <div class="h-24 w-24 bg-primary-400 rounded-full"></div>
                 </div>
                 <p class="text-neutral-600 font-medium">Loading your profile...</p>
             </div>
@@ -571,7 +570,7 @@ class UniWhisper {
 
         try {
             if (forceRefresh || !this.profileData) {
-                this.profileData = await this.apiRequest(`fetch_profile.php?anon_id=${encodeURIComponent(this.anonId)}`);
+                this.profileData = await this.apiRequest(`fetch_profile.php?anon_id=${encodeURIComponent(this.anonId || 'null')}`);
             }
 
             const { profile, stats, recent_posts } = this.profileData;
