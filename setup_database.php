@@ -31,7 +31,7 @@ if (executeQuery($pdo, $dropTables)) {
 $createTables = <<<EOT
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
-    anon_id VARCHAR(32) NOT NULL,
+    anon_id VARCHAR(32) NOT NULL UNIQUE,
     display_name VARCHAR(50) NOT NULL DEFAULT 'Anonymous User',
     profile_picture VARCHAR(255) DEFAULT 'https://via.placeholder.com/100x100/F3F4F6/6B7280?text=A',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
