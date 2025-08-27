@@ -112,6 +112,18 @@ class UniWhisper {
         if (saveProfileBtn) saveProfileBtn.addEventListener('click', () => this.saveProfile());
         if (cancelEditProfileBtn) cancelEditProfileBtn.addEventListener('click', () => this.toggleEditProfile(false));
         if (copyIdBtn) copyIdBtn.addEventListener('click', () => this.copyAnonId());
+
+        // FAB click handler
+        const fabPost = document.getElementById('fab-post');
+        if (fabPost) fabPost.addEventListener('click', () => {
+            document.getElementById('post-content')?.focus();
+        });
+
+        // Create first post button
+        const createFirstPost = document.getElementById('create-first-post');
+        if (createFirstPost) createFirstPost.addEventListener('click', () => {
+            document.getElementById('post-content')?.focus();
+        });
     }
 
     async apiRequest(endpoint, options = {}) {
@@ -309,8 +321,13 @@ class UniWhisper {
 
             feedSection.innerHTML = posts.map(post => `
                 <div class="post-card glass-effect rounded-2xl shadow-xl p-6 elegant-card relative" data-aos="fade-up">
-                    <p class="text-neutral-800">${this.escapeHtml(post.content)}</p>
-                    ${post.image ? `<img src="${post.image}" alt="Post image" class="mt-2 rounded-lg max-w-full h-auto">` : ''}
+                    <div class="user-info">
+                        <img src="${post.profile_picture || 'https://via.placeholder.com/100x100/F3F4F6/6B7280?text=A'}" alt="Profile" class="user-avatar">
+                        <span class="user-name">${post.display_name || 'Anonymous'}</span>
+                        <span class="timestamp">${this.getTimeAgo(new Date(post.created_at))}</span>
+                    </div>
+                    <div class="post-content mt-2">${this.escapeHtml(post.content)}</div>
+                    ${post.image ? `<div class="media-container"><img src="/get_image.php?path=${encodeURIComponent(post.image)}" alt="Post media" class="post-image"></div>` : ''}
                     <div class="flex justify-between items-center mt-3">
                         <div class="flex items-center space-x-4">
                             <button class="like-btn" data-post-id="${post.id}">
@@ -320,15 +337,32 @@ class UniWhisper {
                                 <i class="fas fa-comment text-blue-500"></i> ${post.comment_count || 0}
                             </button>
                         </div>
-                        <span class="text-xs text-neutral-500">${this.getTimeAgo(new Date(post.created_at))}</span>
                     </div>
                     <div class="comments mt-3" data-post-id="${post.id}">
                         ${post.comments ? post.comments.map(comment => `
-                            <div class="text-sm text-neutral-600 border-t border-neutral-100/50 pt-2">
-                                ${this.escapeHtml(comment.content)}
-                                ${comment.media ? `<div class="mt-2"><img src="${comment.media}" alt="Comment media" class="rounded-lg max-w-full h-auto"></div>` : ''}
-                                ${comment.tags ? `<div class="flex flex-wrap gap-2 mt-2">${JSON.parse(comment.tags).map(tag => `<span class="bg-primary-100 text-primary-600 px-2 py-1 rounded-full text-xs">${this.escapeHtml(tag)}</span>`).join('')}</div>` : ''}
-                                <span class="text-xs text-neutral-500">(${this.getTimeAgo(new Date(comment.created_at))})</span>
+                            <div class="comment-card border-t border-neutral-100/50 pt-2 mt-2">
+                                <div class="user-info">
+                                    <img src="${comment.profile_picture || 'https://via.placeholder.com/100x100/F3F4F6/6B7280?text=A'}" alt="Profile" class="user-avatar">
+                                    <span class="user-name">${comment.display_name || 'Anonymous'}</span>
+                                    <span class="timestamp">${this.getTimeAgo(new Date(comment.created_at))}</span>
+                                </div>
+                                <div class="comment-content mt-1">${this.escapeHtml(comment.content)}</div>
+                                ${comment.media ? `<div class="media-container"><img src="/get_image.php?path=${encodeURIComponent(comment.media)}" alt="Comment media" class="comment-image"></div>` : ''}
+                                ${comment.replies ? comment.replies.map(reply => `
+                                    <div class="reply mt-2">
+                                        <div class="user-info">
+                                            <img src="${reply.profile_picture || 'https://via.placeholder.com/100x100/F3F4F6/6B7280?text=A'}" alt="Profile" class="user-avatar">
+                                            <span class="user-name">${reply.display_name || 'Anonymous'}</span>
+                                            <span class="timestamp">${this.getTimeAgo(new Date(reply.created_at))}</span>
+                                        </div>
+                                        <div class="reply-content mt-1">${this.escapeHtml(reply.content)}</div>
+                                        ${reply.media ? `<div class="media-container"><img src="/get_image.php?path=${encodeURIComponent(reply.media)}" alt="Reply media" class="reply-image"></div>` : ''}
+                                    </div>
+                                `).join('') : ''}
+                                <div class="comment-actions">
+                                    <button class="reply-btn" data-comment-id="${comment.id}"><i class="fas fa-reply"></i> Reply</button>
+                                    <button class="view-replies-btn" data-comment-id="${comment.id}"><i class="fas fa-comments"></i> View Replies (${comment.reply_count || 0})</button>
+                                </div>
                             </div>
                         `).join('') : ''}
                     </div>
@@ -340,6 +374,12 @@ class UniWhisper {
             });
             document.querySelectorAll('.comment-btn').forEach(btn => {
                 btn.addEventListener('click', () => this.openCommentModal(btn.dataset.postId));
+            });
+            document.querySelectorAll('.reply-btn').forEach(btn => {
+                btn.addEventListener('click', () => this.openReplyForm(btn.dataset.commentId));
+            });
+            document.querySelectorAll('.view-replies-btn').forEach(btn => {
+                btn.addEventListener('click', () => this.toggleReplies(btn.dataset.commentId));
             });
 
             AOS.refresh();
@@ -400,14 +440,18 @@ class UniWhisper {
                     <div class="space-y-4">
                         ${trending_posts && trending_posts.length ? trending_posts.map(post => `
                             <div class="post-card glass-effect rounded-2xl shadow-xl p-6 elegant-card" data-aos="fade-up">
-                                <p class="text-neutral-800">${this.escapeHtml(post.content)}</p>
-                                ${post.image ? `<img src="${post.image}" alt="Post image" class="mt-2 rounded-lg max-w-full h-auto">` : ''}
+                                <div class="user-info">
+                                    <img src="${post.profile_picture || 'https://via.placeholder.com/100x100/F3F4F6/6B7280?text=A'}" alt="Profile" class="user-avatar">
+                                    <span class="user-name">${post.display_name || 'Anonymous'}</span>
+                                    <span class="timestamp">${this.getTimeAgo(new Date(post.created_at))}</span>
+                                </div>
+                                <div class="post-content mt-2">${this.escapeHtml(post.content)}</div>
+                                ${post.image ? `<div class="media-container"><img src="/get_image.php?path=${encodeURIComponent(post.image)}" alt="Post media" class="post-image"></div>` : ''}
                                 <div class="flex justify-between items-center mt-3">
                                     <div class="flex items-center space-x-4">
                                         <span class="text-sm text-neutral-500"><i class="fas fa-heart text-red-500"></i> ${post.like_count || 0}</span>
                                         <span class="text-sm text-neutral-500"><i class="fas fa-comment text-blue-500"></i> ${post.comment_count || 0}</span>
                                     </div>
-                                    <span class="text-xs text-neutral-500">${this.getTimeAgo(new Date(post.created_at))}</span>
                                 </div>
                             </div>
                         `).join('') : '<p class="text-neutral-500">No trending posts yet.</p>'}
@@ -613,14 +657,18 @@ class UniWhisper {
                 if (recent_posts && recent_posts.length > 0) {
                     recentPostsContainer.innerHTML = recent_posts.map(post => `
                         <div class="post-card glass-effect rounded-2xl shadow-xl p-6 elegant-card" data-aos="fade-up">
-                            <p class="text-neutral-800">${this.escapeHtml(post.content)}</p>
-                            ${post.image ? `<img src="${post.image}" alt="Post image" class="mt-2 rounded-lg max-w-full h-auto">` : ''}
+                            <div class="user-info">
+                                <img src="${post.profile_picture || 'https://via.placeholder.com/100x100/F3F4F6/6B7280?text=A'}" alt="Profile" class="user-avatar">
+                                <span class="user-name">${post.display_name || 'Anonymous'}</span>
+                                <span class="timestamp">${this.getTimeAgo(new Date(post.created_at))}</span>
+                            </div>
+                            <div class="post-content mt-2">${this.escapeHtml(post.content)}</div>
+                            ${post.image ? `<div class="media-container"><img src="/get_image.php?path=${encodeURIComponent(post.image)}" alt="Post media" class="post-image"></div>` : ''}
                             <div class="flex justify-between items-center mt-3">
                                 <div class="flex items-center space-x-4">
                                     <span class="text-sm text-neutral-500"><i class="fas fa-heart text-red-500"></i> ${post.like_count || 0}</span>
                                     <span class="text-sm text-neutral-500"><i class="fas fa-comment text-blue-500"></i> ${post.comment_count || 0}</span>
                                 </div>
-                                <span class="text-xs text-neutral-500">${this.getTimeAgo(new Date(post.created_at))}</span>
                             </div>
                         </div>
                     `).join('');
@@ -698,6 +746,72 @@ class UniWhisper {
         if (commentModal) {
             commentModal.classList.add('hidden');
             this.currentCommentPostId = null;
+        }
+    }
+
+    openReplyForm(commentId) {
+        const commentCard = document.querySelector(`.comment-card[data-comment-id="${commentId}"]`);
+        if (commentCard) {
+            let replyForm = commentCard.querySelector('.reply-form');
+            if (!replyForm) {
+                replyForm = document.createElement('div');
+                replyForm.className = 'reply-form';
+                replyForm.innerHTML = `
+                    <textarea class="reply-input" placeholder="Write a reply..." maxlength="250"></textarea>
+                    <button class="reply-submit" data-comment-id="${commentId}">Submit</button>
+                    <button class="reply-cancel" data-comment-id="${commentId}">Cancel</button>
+                `;
+                commentCard.appendChild(replyForm);
+
+                const replyInput = replyForm.querySelector('.reply-input');
+                const replySubmit = replyForm.querySelector('.reply-submit');
+                const replyCancel = replyForm.querySelector('.reply-cancel');
+
+                replyInput.addEventListener('input', () => {
+                    replySubmit.disabled = replyInput.value.trim().length === 0 || replyInput.value.trim().length > 250;
+                });
+
+                replySubmit.addEventListener('click', () => this.submitReply(commentId, replyInput.value.trim()));
+                replyCancel.addEventListener('click', () => {
+                    commentCard.removeChild(replyForm);
+                });
+            }
+        }
+    }
+
+    async submitReply(commentId, content) {
+        if (!content || content.length > 250) {
+            this.showToast('Reply must be 250 characters or fewer', 'error');
+            return;
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append('anon_id', this.anonId);
+            formData.append('comment_id', commentId);
+            formData.append('content', content);
+
+            await this.apiRequest('reply_comment.php', {
+                method: 'POST',
+                body: formData
+            });
+            this.showToast('Reply submitted successfully!', 'success');
+            const commentCard = document.querySelector(`.comment-card[data-comment-id="${commentId}"]`);
+            if (commentCard) {
+                commentCard.querySelector('.reply-form')?.remove();
+            }
+            await this.loadView(this.currentView, true);
+        } catch (error) {
+            console.error('Error submitting reply:', error);
+            this.showToast(`Error submitting reply: ${error.message}`, 'error');
+        }
+    }
+
+    toggleReplies(commentId) {
+        const commentCard = document.querySelector(`.comment-card[data-comment-id="${commentId}"]`);
+        if (commentCard) {
+            const replies = commentCard.querySelectorAll('.reply');
+            replies.forEach(reply => reply.classList.toggle('hidden'));
         }
     }
 

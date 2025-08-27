@@ -1,37 +1,32 @@
 <?php
 require_once 'config.php';
 
-// Only allow POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['error' => 'Method not allowed']);
     exit;
 }
 
-// Check if we're receiving form data or JSON
 $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
-$anon_id = isset($input['anon_id']) ? trim($input['anon_id']) : '';
-$content = isset($input['content']) ? trim($input['content']) : '';
-$action = isset($input['action']) ? trim($input['action']) : 'post'; // Add action for like
+$anon_id = trim($input['anon_id'] ?? '');
+$content = trim($input['content'] ?? '');
+$action = trim($input['action'] ?? 'post');
 
-// Validate input
 if (empty($anon_id) || ($action === 'post' && empty($content))) {
     http_response_code(400);
-    echo json_encode(['error' => 'Missing required fields: anon_id, content']);
+    echo json_encode(['error' => 'Missing required fields']);
     exit;
 }
 
-// Validate content length
 if ($action === 'post' && strlen($content) > 1000) {
     http_response_code(400);
-    echo json_encode(['error' => 'Post content must be less than 1000 characters']);
+    echo json_encode(['error' => 'Post content too long']);
     exit;
 }
 
-// Handle file upload if present
 $image = null;
 if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-    $uploadDir = '/tmp/uploads/posts/'; // Use temp dir for Render
+    $uploadDir = '/tmp/uploads/posts/';
     if (!file_exists($uploadDir)) mkdir($uploadDir, 0777, true);
     $fileExtension = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
     $fileName = uniqid() . '.' . $fileExtension;
@@ -44,14 +39,14 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
     }
     if ($_FILES['image']['size'] > 5 * 1024 * 1024) {
         http_response_code(400);
-        echo json_encode(['error' => 'File size must be less than 5MB']);
+        echo json_encode(['error' => 'File size too large']);
         exit;
     }
     if (move_uploaded_file($_FILES['image']['tmp_name'], $filePath)) {
         $image = $filePath;
     } else {
         http_response_code(500);
-        echo json_encode(['error' => 'Failed to upload file']);
+        echo json_encode(['error' => 'Upload failed']);
         exit;
     }
 }
@@ -86,5 +81,20 @@ try {
 } catch(PDOException $e) {
     http_response_code(500);
     echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
+}
+?>
+
+<?php
+// Add this as get_image.php
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['path'])) {
+    $filePath = urldecode($_GET['path']);
+    if (file_exists($filePath)) {
+        header('Content-Type: ' . mime_content_type($filePath));
+        readfile($filePath);
+        exit;
+    } else {
+        http_response_code(404);
+        echo json_encode(['error' => 'Image not found']);
+    }
 }
 ?>
