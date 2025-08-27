@@ -18,12 +18,9 @@ function generateRandomNames($count = 10) {
 }
 
 function generateRandomAvatars($count = 10) {
-    $colors = ['FF6B6B', '4ECDC4', '45B7D1', 'FFA07A', '98D8C8', 'F7DC6F', 'BB8FCE', '85C1E9', 'F8C471', 'A3E4D7'];
     $avatars = [];
     for ($i = 1; $i <= $count; $i++) {
-        $color = $colors[array_rand($colors)];
-        $initials = chr(65 + rand(0, 25)) . chr(65 + rand(0, 25)); // Random initials
-        $avatars[] = "https://via.placeholder.com/100x100/{$color}/FFFFFF?text={$initials}";
+        $avatars[] = "https://via.placeholder.com/100?random=" . rand(1, 1000);
     }
     return $avatars;
 }

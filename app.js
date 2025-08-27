@@ -178,21 +178,11 @@ class UniWhisper {
 
     async createNewUser() {
         try {
-            // Generate random name and avatar
-            const adjectives = ['Cool', 'Chill', 'Epic', 'Mighty', 'Sly', 'Brave', 'Witty', 'Noble', 'Swift', 'Bold'];
-            const nouns = ['Tiger', 'Eagle', 'Shark', 'Dragon', 'Phoenix', 'Wolf', 'Falcon', 'Lion', 'Bear', 'Hawk'];
-            const randomName = adjectives[Math.floor(Math.random() * adjectives.length)] + ' ' + nouns[Math.floor(Math.random() * nouns.length)];
-            
-            const colors = ['FF6B6B', '4ECDC4', '45B7D1', 'FFA07A', '98D8C8', 'F7DC6F', 'BB8FCE', '85C1E9', 'F8C471', 'A3E4D7'];
-            const color = colors[Math.floor(Math.random() * colors.length)];
-            const initials = String.fromCharCode(65 + Math.floor(Math.random() * 26)) + String.fromCharCode(65 + Math.floor(Math.random() * 26));
-            const randomAvatar = `https://via.placeholder.com/100x100/${color}/FFFFFF?text=${initials}`;
-            
             const data = await this.apiRequest('register_user.php', {
                 method: 'POST',
                 body: JSON.stringify({
-                    selected_name: randomName,
-                    selected_avatar: randomAvatar
+                    selected_name: 'Anonymous User',
+                    selected_avatar: 'https://via.placeholder.com/100x100/F3F4F6/6B7280?text=A'
                 })
             });
             this.anonId = data.anon_id;
@@ -318,79 +308,27 @@ class UniWhisper {
             }
 
             feedSection.innerHTML = posts.map(post => `
-                <div class="modern-card rounded-3xl shadow-xl p-8 hover-lift relative" data-aos="fade-up">
-                    <div class="user-info">
-                        <img src="${post.profile_picture || 'https://via.placeholder.com/100x100/8B5CF6/FFFFFF?text=' + (post.display_name ? post.display_name.charAt(0) : 'A')}" alt="Profile" class="user-avatar status-online">
-                        <div>
-                            <span class="user-name text-lg font-semibold">${this.escapeHtml(post.display_name || 'Anonymous')}</span>
-                            <div class="timestamp flex items-center">
-                                <i class="fas fa-clock mr-1"></i>
-                                ${this.getTimeAgo(new Date(post.created_at))}
-                            </div>
+                <div class="post-card glass-effect rounded-2xl shadow-xl p-6 elegant-card relative" data-aos="fade-up">
+                    <p class="text-neutral-800">${this.escapeHtml(post.content)}</p>
+                    ${post.image ? `<img src="${post.image}" alt="Post image" class="mt-2 rounded-lg max-w-full h-auto">` : ''}
+                    <div class="flex justify-between items-center mt-3">
+                        <div class="flex items-center space-x-4">
+                            <button class="like-btn" data-post-id="${post.id}">
+                                <i class="fas fa-heart ${post.liked ? 'liked text-red-500' : 'text-neutral-500'}"></i> ${post.like_count || 0}
+                            </button>
+                            <button class="comment-btn" data-post-id="${post.id}">
+                                <i class="fas fa-comment text-blue-500"></i> ${post.comment_count || 0}
+                            </button>
                         </div>
+                        <span class="text-xs text-neutral-500">${this.getTimeAgo(new Date(post.created_at))}</span>
                     </div>
-                    <p class="text-neutral-800 text-lg leading-relaxed mb-4">${this.escapeHtml(post.content)}</p>
-                    ${post.image ? `<div class="media-container-modern"><img src="${post.image}" alt="Post image" class="post-image w-full rounded-2xl shadow-lg"></div>` : ''}
-                    <div class="flex justify-between items-center mt-6 pt-4 border-t border-white/20">
-                        <div class="flex items-center space-x-6">
-                            <button class="like-btn flex items-center space-x-2 ${post.liked ? 'liked' : ''}" data-post-id="${post.id}">
-                                <i class="fas fa-heart text-lg"></i>
-                                <span class="font-medium">${post.like_count || 0}</span>
-                            </button>
-                            <button class="comment-btn flex items-center space-x-2" data-post-id="${post.id}">
-                                <i class="fas fa-comment text-lg"></i>
-                                <span class="font-medium">${post.comment_count || 0}</span>
-                            </button>
-                            <button class="save-btn flex items-center space-x-2" data-post-id="${post.id}">
-                                <i class="fas fa-bookmark text-lg"></i>
-                                <span class="font-medium">Save</span>
-                            </button>
-                        </div>
-                        <div class="text-sm text-neutral-500 bg-neutral-100 px-3 py-1 rounded-full">
-                            <i class="fas fa-eye mr-1"></i>
-                            ${Math.floor(Math.random() * 100) + 10} views
-                        </div>
-                    </div>
-                    <div class="comments mt-6" data-post-id="${post.id}">
+                    <div class="comments mt-3" data-post-id="${post.id}">
                         ${post.comments ? post.comments.map(comment => `
-                            <div class="comment">
-                                <div class="user-info">
-                                    <img src="${comment.profile_picture || 'https://via.placeholder.com/100x100/06B6D4/FFFFFF?text=' + (comment.display_name ? comment.display_name.charAt(0) : 'A')}" alt="Profile" class="user-avatar">
-                                    <div>
-                                        <span class="user-name">${this.escapeHtml(comment.display_name || 'Anonymous')}</span>
-                                        <div class="timestamp">
-                                            <i class="fas fa-clock mr-1"></i>
-                                            ${this.getTimeAgo(new Date(comment.created_at))}
-                                        </div>
-                                    </div>
-                                </div>
-                                <p class="text-neutral-700 mt-3 leading-relaxed">${this.escapeHtml(comment.content)}</p>
-                                ${comment.media ? `<div class="media-container-modern mt-3"><img src="${comment.media}" alt="Comment media" class="comment-image w-full rounded-xl"></div>` : ''}
-                                ${comment.tags ? `<div class="flex flex-wrap gap-2 mt-3">${JSON.parse(comment.tags).map(tag => `<span class="bg-gradient-to-r from-primary-100 to-secondary-100 text-primary-700 px-3 py-1 rounded-full text-xs font-medium">${this.escapeHtml(tag)}</span>`).join('')}</div>` : ''}
-                                <div class="comment-actions">
-                                    <button class="reply-btn" data-comment-id="${comment.id}">
-                                        <i class="fas fa-reply"></i> Reply
-                                    </button>
-                                    ${comment.replies && comment.replies.length > 0 ? `<button class="view-replies-btn" data-comment-id="${comment.id}"><i class="fas fa-comments"></i> View ${comment.replies.length} replies</button>` : ''}
-                                </div>
-                                <div class="replies" data-comment-id="${comment.id}" style="display: none;">
-                                    ${comment.replies ? comment.replies.map(reply => `
-                                        <div class="reply">
-                                            <div class="user-info">
-                                                <img src="${reply.profile_picture || 'https://via.placeholder.com/100x100/10B981/FFFFFF?text=' + (reply.display_name ? reply.display_name.charAt(0) : 'A')}" alt="Profile" class="user-avatar">
-                                                <div>
-                                                    <span class="user-name">${this.escapeHtml(reply.display_name || 'Anonymous')}</span>
-                                                    <div class="timestamp">
-                                                        <i class="fas fa-clock mr-1"></i>
-                                                        ${this.getTimeAgo(new Date(reply.created_at))}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <p class="text-neutral-700 mt-2 leading-relaxed">${this.escapeHtml(reply.content)}</p>
-                                            ${reply.media ? `<div class="media-container-modern mt-2"><img src="${reply.media}" alt="Reply media" class="reply-image w-full rounded-lg"></div>` : ''}
-                                        </div>
-                                    `).join('') : ''}
-                                </div>
+                            <div class="text-sm text-neutral-600 border-t border-neutral-100/50 pt-2">
+                                ${this.escapeHtml(comment.content)}
+                                ${comment.media ? `<div class="mt-2"><img src="${comment.media}" alt="Comment media" class="rounded-lg max-w-full h-auto"></div>` : ''}
+                                ${comment.tags ? `<div class="flex flex-wrap gap-2 mt-2">${JSON.parse(comment.tags).map(tag => `<span class="bg-primary-100 text-primary-600 px-2 py-1 rounded-full text-xs">${this.escapeHtml(tag)}</span>`).join('')}</div>` : ''}
+                                <span class="text-xs text-neutral-500">(${this.getTimeAgo(new Date(comment.created_at))})</span>
                             </div>
                         `).join('') : ''}
                     </div>
@@ -402,12 +340,6 @@ class UniWhisper {
             });
             document.querySelectorAll('.comment-btn').forEach(btn => {
                 btn.addEventListener('click', () => this.openCommentModal(btn.dataset.postId));
-            });
-            document.querySelectorAll('.reply-btn').forEach(btn => {
-                btn.addEventListener('click', () => this.showReplyForm(btn.dataset.commentId));
-            });
-            document.querySelectorAll('.view-replies-btn').forEach(btn => {
-                btn.addEventListener('click', () => this.toggleReplies(btn.dataset.commentId));
             });
 
             AOS.refresh();
@@ -937,80 +869,6 @@ class UniWhisper {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
-    }
-
-    showReplyForm(commentId) {
-        // Hide any existing reply forms
-        document.querySelectorAll('.reply-form').forEach(form => form.remove());
-        
-        // Create reply form
-        const replyForm = document.createElement('div');
-        replyForm.className = 'reply-form';
-        replyForm.innerHTML = `
-            <textarea class="reply-input" placeholder="Write a reply..." maxlength="500"></textarea>
-            <div class="flex gap-2 mt-2">
-                <button class="reply-submit" data-comment-id="${commentId}">Reply</button>
-                <button class="reply-cancel">Cancel</button>
-            </div>
-        `;
-        
-        // Find the comment and append the form
-        const comment = document.querySelector(`[data-comment-id="${commentId}"]`).closest('.comment');
-        if (comment) {
-            comment.appendChild(replyForm);
-            replyForm.querySelector('.reply-input').focus();
-            
-            // Add event listeners
-            replyForm.querySelector('.reply-submit').addEventListener('click', () => this.submitReply(commentId));
-            replyForm.querySelector('.reply-cancel').addEventListener('click', () => replyForm.remove());
-        }
-    }
-
-    toggleReplies(commentId) {
-        const repliesContainer = document.querySelector(`.replies[data-comment-id="${commentId}"]`);
-        const toggleBtn = document.querySelector(`.view-replies-btn[data-comment-id="${commentId}"]`);
-        
-        if (repliesContainer && toggleBtn) {
-            const isVisible = repliesContainer.style.display !== 'none';
-            repliesContainer.style.display = isVisible ? 'none' : 'block';
-            toggleBtn.innerHTML = isVisible ? 
-                `<i class="fas fa-comments"></i> View replies` : 
-                `<i class="fas fa-comments"></i> Hide replies`;
-        }
-    }
-
-    async submitReply(commentId) {
-        const replyForm = document.querySelector('.reply-form');
-        const replyInput = replyForm?.querySelector('.reply-input');
-        
-        if (!replyInput || !commentId) {
-            this.showToast('Error: Cannot submit reply', 'error');
-            return;
-        }
-
-        const content = replyInput.value.trim();
-        if (content.length === 0 || content.length > 500) {
-            this.showToast('Reply must be between 1 and 500 characters', 'error');
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('anon_id', this.anonId);
-        formData.append('comment_id', commentId);
-        formData.append('content', content);
-
-        try {
-            await this.apiRequest('reply_post.php', {
-                method: 'POST',
-                body: formData
-            });
-            this.showToast('Reply submitted successfully!', 'success');
-            replyForm.remove();
-            await this.loadView(this.currentView, true);
-        } catch (error) {
-            console.error('Error submitting reply:', error);
-            this.showToast(`Error submitting reply: ${error.message}`, 'error');
-        }
     }
 }
 
