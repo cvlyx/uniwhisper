@@ -25,15 +25,15 @@ try {
         SELECT 
             p.id, p.content, p.image, p.created_at,
             u.display_name, u.profile_picture,
-            COALESCE((SELECT COUNT(*) FROM votes WHERE post_id = p.id AND vote_type = 'upvote'), 0) as upvotes,
-            COALESCE((SELECT COUNT(*) FROM votes WHERE post_id = p.id AND vote_type = 'downvote'), 0) as downvotes,
-            COALESCE((SELECT vote_type FROM votes WHERE post_id = p.id AND anon_id = ? LIMIT 1), NULL) as user_vote
+            COALESCE((SELECT COUNT(*) FROM likes WHERE post_id = p.id), 0) as like_count,
+            COALESCE((SELECT COUNT(*) FROM comments WHERE post_id = p.id), 0) as comment_count,
+            COALESCE((SELECT 1 FROM likes WHERE post_id = p.id AND anon_id = ? LIMIT 1), 0) as liked
         FROM posts p
         LEFT JOIN users u ON p.anon_id = u.anon_id
         ORDER BY p.created_at DESC
         LIMIT 50
     ');
-    $stmt->execute([$anon_id, $anon_id]);
+    $stmt->execute([$anon_id]);
     $posts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     foreach ($posts as &$post) {

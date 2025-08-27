@@ -1,485 +1,891 @@
-// UniWhisper JavaScript Application
 class UniWhisper {
     constructor() {
-        // API base URL - adjust for your server
-        //this.apiBase = 'http://localhost:8000'; // For php -S localhost:8000
-        this.apiBase = 'http://localhost/uniwhisper'; // Uncomment for Apache
-        
+        // API base URL - set to Render deployment
+        this.apiBase = 'https://uniwhisper.onrender.com';
+
         // User management
         this.anonId = null;
         this.currentCommentPostId = null;
-        
+        this.currentView = 'feed'; // feed, explore, notifications, profile
+        this.notifications = [];
+        this.profileData = null;
+        this.exploreData = null;
+
         // Initialize the application
         this.init();
     }
-    
+
     async init() {
         console.log('Initializing UniWhisper...');
-        
+        console.log('Checking initial DOM for feed-section:', !!document.getElementById('feed-section'));
+
         // Setup event listeners
         this.setupEventListeners();
-        
+
         // Initialize user
         await this.initializeUser();
-        
-        // Load posts
-        await this.loadPosts();
-        
+
+        // Ensure DOM is fully loaded
+        await new Promise(resolve => {
+            if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                resolve();
+            } else {
+                document.addEventListener('DOMContentLoaded', resolve, { once: true });
+            }
+        });
+
+        // Load initial view
+        await this.loadView('feed');
+
         console.log('UniWhisper initialized successfully');
     }
-    
+
     setupEventListeners() {
+        // Post form
         const postForm = document.getElementById('post-form');
         const postContent = document.getElementById('post-content');
         const submitBtn = document.getElementById('submit-btn');
         const charCount = document.getElementById('char-count');
-        
-        if (!postForm || !postContent || !submitBtn || !charCount) {
-            console.error('Post form elements missing:', {
-                postForm: !!postForm,
-                postContent: !!postContent,
-                submitBtn: !!submitBtn,
-                charCount: !!charCount
+        const postMedia = document.getElementById('post-media');
+
+        if (postForm && postContent && submitBtn && charCount) {
+            postContent.addEventListener('input', () => {
+                const length = postContent.value.length;
+                charCount.textContent = `${length}/1000 characters`;
+                submitBtn.disabled = length === 0 || length > 1000;
             });
-            this.showToast('Error: Post form elements not found', 'error');
-            return;
+
+            postForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.submitPost();
+            });
         }
-        
-        postContent.addEventListener('input', () => {
-            const length = postContent.value.length;
-            charCount.textContent = length;
-            submitBtn.disabled = length === 0 || length > 1000;
-        });
-        
-        postForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.submitPost();
-        });
-        
+
+        // Comment modal
         const commentModal = document.getElementById('comment-modal');
         const commentContent = document.getElementById('comment-content');
         const commentCharCount = document.getElementById('comment-char-count');
         const submitCommentBtn = document.getElementById('submit-comment');
         const cancelCommentBtn = document.getElementById('cancel-comment');
-        
-        if (!commentModal || !commentContent || !commentCharCount || !submitCommentBtn || !cancelCommentBtn) {
-            console.error('Comment modal elements missing:', {
-                commentModal: !!commentModal,
-                commentContent: !!commentContent,
-                commentCharCount: !!commentCharCount,
-                submitCommentBtn: !!submitCommentBtn,
-                cancelCommentBtn: !!cancelCommentBtn
+        const commentMedia = document.getElementById('comment-media');
+
+        if (commentModal && commentContent && commentCharCount && submitCommentBtn && cancelCommentBtn) {
+            commentContent.addEventListener('input', () => {
+                const length = commentContent.value.length;
+                commentCharCount.textContent = `${length}/500 characters`;
+                submitCommentBtn.disabled = length === 0 || length > 500;
             });
-            this.showToast('Error: Comment modal elements not found', 'error');
-            return;
-        }
-        
-        commentContent.addEventListener('input', () => {
-            const length = commentContent.value.length;
-            commentCharCount.textContent = length;
-            submitCommentBtn.disabled = length === 0 || length > 500;
-        });
-        
-        submitCommentBtn.addEventListener('click', () => {
-            this.submitComment();
-        });
-        
-        cancelCommentBtn.addEventListener('click', () => {
-            this.closeCommentModal();
-        });
-        
-        commentModal.addEventListener('click', (e) => {
-            if (e.target === commentModal) {
+
+            submitCommentBtn.addEventListener('click', () => {
+                this.submitComment();
+            });
+
+            cancelCommentBtn.addEventListener('click', () => {
                 this.closeCommentModal();
-            }
-        });
+            });
+
+            commentModal.addEventListener('click', (e) => {
+                if (e.target === commentModal) {
+                    this.closeCommentModal();
+                }
+            });
+        }
+
+        // Navigation
+        const navFeed = document.getElementById('nav-feed');
+        const navExplore = document.getElementById('nav-explore');
+        const navNotifications = document.getElementById('nav-notifications');
+        const navProfile = document.getElementById('nav-profile');
+
+        if (navFeed) navFeed.addEventListener('click', () => this.loadView('feed'));
+        if (navExplore) navExplore.addEventListener('click', () => this.loadView('explore'));
+        if (navNotifications) navNotifications.addEventListener('click', () => this.loadView('notifications'));
+        if (navProfile) navProfile.addEventListener('click', () => this.loadView('profile'));
+
+        // Profile actions
+        const editProfileBtn = document.getElementById('edit-profile-btn');
+        const saveProfileBtn = document.getElementById('save-profile-btn');
+        const cancelEditProfileBtn = document.getElementById('cancel-edit-profile-btn');
+        const copyIdBtn = document.getElementById('copy-id-btn');
+
+        if (editProfileBtn) editProfileBtn.addEventListener('click', () => this.toggleEditProfile(true));
+        if (saveProfileBtn) saveProfileBtn.addEventListener('click', () => this.saveProfile());
+        if (cancelEditProfileBtn) cancelEditProfileBtn.addEventListener('click', () => this.toggleEditProfile(false));
+        if (copyIdBtn) copyIdBtn.addEventListener('click', () => this.copyAnonId());
     }
-    
+
+    async apiRequest(endpoint, options = {}) {
+        try {
+            console.log(`Making API request to ${endpoint}`);
+            
+            // Don't set Content-Type header for FormData - browser will set it automatically
+            const headers = {};
+            if (!(options.body instanceof FormData)) {
+                headers['Content-Type'] = 'application/json';
+            }
+            
+            const response = await fetch(`${this.apiBase}/${endpoint}`, {
+                ...options,
+                headers: {
+                    ...headers,
+                    ...options.headers
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP error ${response.status}: ${response.statusText} - ${errorText.substring(0, 100)}...`);
+            }
+
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                throw new Error(`Expected JSON, got ${contentType}: ${text.substring(0, 100)}...`);
+            }
+
+            const data = await response.json();
+            if (!data.success) {
+                throw new Error(data.error || 'API request failed');
+            }
+
+            return data;
+        } catch (error) {
+            console.error(`Error in API request to ${endpoint}:`, error.message, error.stack);
+            this.showToast(`Error: ${error.message}`, 'error');
+            throw error;
+        }
+    }
+
     async initializeUser() {
         this.anonId = localStorage.getItem('uniwhisper_anon_id');
-        
+
         if (this.anonId) {
             try {
-                const response = await fetch(`${this.apiBase}/check_user.php?anon_id=${encodeURIComponent(this.anonId)}`);
-                if (!response.ok) {
-                    throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
-                }
-                const data = await response.json();
-                
-                if (!data.success || !data.exists) {
+                const data = await this.apiRequest(`check_user.php?anon_id=${encodeURIComponent(this.anonId)}`);
+                if (!data.exists) {
                     await this.createNewUser();
                 }
             } catch (error) {
-                console.error('Error checking user:', error.message, error.stack);
+                console.error('Error checking user:', error);
                 await this.createNewUser();
             }
         } else {
             await this.createNewUser();
         }
-        
+
         this.updateUserStatus();
     }
-    
+
     async createNewUser() {
         try {
-            const response = await fetch(`${this.apiBase}/register_user.php`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
-            });
-            if (!response.ok) {
-                throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
-            }
-            const data = await response.json();
+            // Generate random name and avatar
+            const adjectives = ['Cool', 'Chill', 'Epic', 'Mighty', 'Sly', 'Brave', 'Witty', 'Noble', 'Swift', 'Bold'];
+            const nouns = ['Tiger', 'Eagle', 'Shark', 'Dragon', 'Phoenix', 'Wolf', 'Falcon', 'Lion', 'Bear', 'Hawk'];
+            const randomName = adjectives[Math.floor(Math.random() * adjectives.length)] + ' ' + nouns[Math.floor(Math.random() * nouns.length)];
             
-            if (data.success) {
-                this.anonId = data.anon_id;
-                localStorage.setItem('uniwhisper_anon_id', this.anonId);
-                console.log('New anonymous user created:', this.anonId);
-            } else {
-                throw new Error(data.error || 'Failed to create user');
-            }
+            const colors = ['FF6B6B', '4ECDC4', '45B7D1', 'FFA07A', '98D8C8', 'F7DC6F', 'BB8FCE', '85C1E9', 'F8C471', 'A3E4D7'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            const initials = String.fromCharCode(65 + Math.floor(Math.random() * 26)) + String.fromCharCode(65 + Math.floor(Math.random() * 26));
+            const randomAvatar = `https://via.placeholder.com/100x100/${color}/FFFFFF?text=${initials}`;
+            
+            const data = await this.apiRequest('register_user.php', {
+                method: 'POST',
+                body: JSON.stringify({
+                    selected_name: randomName,
+                    selected_avatar: randomAvatar
+                })
+            });
+            this.anonId = data.anon_id;
+            localStorage.setItem('uniwhisper_anon_id', this.anonId);
+            console.log('New anonymous user created:', this.anonId);
         } catch (error) {
-            console.error('Error creating user:', error.message, error.stack);
+            console.error('Error creating user:', error);
             this.showToast(`Error creating anonymous user: ${error.message}`, 'error');
         }
     }
-    
+
     updateUserStatus() {
         const userStatus = document.getElementById('user-status');
-        if (!userStatus) {
-            console.error('User status element missing');
-            this.showToast('Error: User status element not found', 'error');
-            return;
+        const userId = document.getElementById('user-id');
+        if (userStatus && userId && this.anonId) {
+            userStatus.innerHTML = `<i class="fas fa-user-secret mr-1 text-primary-600"></i> Anonymous User`;
+            userId.innerHTML = `ID: ${this.anonId.substring(0, 12)}... <button id="copy-id-btn" class="ml-2 text-primary-500 hover:text-primary-700 text-xs"><i class="fas fa-copy"></i> Copy</button>`;
+            document.getElementById('copy-id-btn')?.addEventListener('click', () => this.copyAnonId());
         }
+    }
+
+    async copyAnonId() {
         if (this.anonId) {
-            userStatus.textContent = `Anonymous User (${this.anonId.substring(0, 12)}...)`;
+            try {
+                await navigator.clipboard.writeText(this.anonId);
+                this.showToast('User ID copied to clipboard!', 'success');
+            } catch (error) {
+                console.error('Error copying anon_id:', error);
+                this.showToast('Failed to copy User ID', 'error');
+            }
         }
     }
-    
-    async submitPost() {
-        const postContent = document.getElementById('post-content');
-        const charCount = document.getElementById('char-count');
-        const submitBtn = document.getElementById('submit-btn');
-        
-        if (!postContent || !charCount || !submitBtn) {
-            console.error('Post form elements missing:', {
-                postContent: !!postContent,
-                charCount: !!charCount,
-                submitBtn: !!submitBtn
-            });
-            this.showToast('Error: Post form elements not found', 'error');
+
+    async loadView(view, forceRefresh = false) {
+        this.currentView = view;
+
+        // Update navigation
+        document.querySelectorAll('.nav-btn').forEach(item => {
+            item.classList.remove('text-primary-600');
+            item.classList.add('text-neutral-500');
+        });
+        const activeNav = document.getElementById(`nav-${view}`);
+        if (activeNav) {
+            activeNav.classList.remove('text-neutral-500');
+            activeNav.classList.add('text-primary-600');
+        }
+
+        // Hide all sections
+        ['feed-section', 'explore-section', 'notifications-section', 'profile-section'].forEach(id => {
+            const section = document.getElementById(id);
+            if (section) section.classList.add('hidden');
+        });
+
+        // Show active section
+        const activeSection = document.getElementById(`${view}-section`);
+        if (activeSection) {
+            activeSection.classList.remove('hidden');
+        } else {
+            this.showToast(`Error: ${view} container not found`, 'error');
             return;
         }
-        
-        const content = postContent.value.trim();
-        
-        if (!content || !this.anonId) {
-            this.showToast('Please enter some content', 'error');
-            return;
-        }
-        
+
+        // Load view content
         try {
-            const response = await fetch(`${this.apiBase}/submit_post.php`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ anon_id: this.anonId, content })
-            });
-            if (!response.ok) {
-                throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
-            }
-            const data = await response.json();
-            
-            if (data.success) {
-                postContent.value = '';
-                charCount.textContent = '0';
-                submitBtn.disabled = true;
-                this.showToast('Post shared successfully!', 'success');
-                await this.loadPosts();
-            } else {
-                throw new Error(data.error || 'Failed to submit post');
-            }
+            if (view === 'feed') await this.loadFeed(forceRefresh);
+            else if (view === 'explore') await this.loadExplore(forceRefresh);
+            else if (view === 'notifications') await this.loadNotifications(forceRefresh);
+            else if (view === 'profile') await this.loadProfile(forceRefresh);
         } catch (error) {
-            console.error('Error submitting post:', error.message, error.stack);
-            this.showToast(`Error submitting post: ${error.message}`, 'error');
+            console.error(`Error loading view ${view}:`, error);
+            this.showToast(`Error loading ${view}: ${error.message}`, 'error');
         }
     }
-    
-    async loadPosts() {
-        const postsSection = document.getElementById('posts');
-        const loadingPosts = document.getElementById('loading-posts');
-        const noPosts = document.getElementById('no-posts');
-        
-        // Log missing elements for debugging
-        if (!postsSection || !loadingPosts || !noPosts) {
-            console.error('Post section elements missing:', {
-                postsSection: !!postsSection,
-                loadingPosts: !!loadingPosts,
-                noPosts: !!noPosts
-            });
-            // Only show error toast if postsSection is missing
-            if (!postsSection) {
-                this.showToast('Error: Posts container not found', 'error');
+
+    async loadFeed(forceRefresh = false) {
+        console.log('Checking for feed-section:', !!document.getElementById('feed-section'));
+        let feedSection = document.getElementById('feed-section-content');
+        if (!feedSection) {
+            console.warn('Feed content container not found, creating fallback');
+            feedSection = document.createElement('div');
+            feedSection.id = 'feed-section-content';
+            feedSection.className = 'space-y-5';
+            const mainSection = document.getElementById('feed-section');
+            if (mainSection) {
+                mainSection.appendChild(feedSection);
+            } else {
+                this.showToast('Error: Feed section not found', 'error');
                 return;
             }
         }
-        
+
+        feedSection.innerHTML = `
+            <div class="inline-flex items-center justify-center glass-effect rounded-2xl shadow px-6 py-4">
+                <div class="animate-pulse-soft mr-3">
+                    <div class="h-5 w-5 bg-primary-400 rounded-full"></div>
+                </div>
+                <p class="text-neutral-600 font-medium">Loading campus whispers...</p>
+            </div>
+        `;
+
         try {
-            // Show loading indicator if available
-            if (loadingPosts) {
-                loadingPosts.classList.remove('hidden');
-            }
-            if (noPosts) {
-                noPosts.classList.add('hidden');
-            }
-            
-            const response = await fetch(`${this.apiBase}/fetch_posts.php`);
-            if (!response.ok) {
-                throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
-            }
-            const data = await response.json();
-            
-            if (!data.success) {
-                throw new Error(data.error || 'Failed to load posts');
-            }
-            
-            if (data.posts.length === 0) {
-                if (noPosts) {
-                    noPosts.classList.remove('hidden');
-                }
-                postsSection.innerHTML = '';
-            } else {
-                postsSection.innerHTML = data.posts.map(post => {
-                    const timeAgo = this.getTimeAgo(new Date(post.created_at));
-                    const commentsHtml = this.renderComments(post.comments || []);
-                    
-                    return `
-                        <div class="bg-white p-6 rounded-lg shadow">
-                            <p class="text-gray-800">${this.escapeHtml(post.content)}</p>
-                            <div class="flex justify-between items-center mt-4">
-                                <div class="flex space-x-4">
-                                    <button class="like-btn flex items-center text-gray-500" data-post-id="${post.id}">
-                                        <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
-                                    <span class="like-count">${post.like_count || 0}</span>
-                                </button>
-                                <button class="comment-btn text-gray-500" data-post-id="${post.id}">
-                                    <svg class="w-5 h-5 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
-                                    ${post.comment_count || 0}
-                                </button>
-                            </div>
-                            <p class="text-xs text-gray-500">${timeAgo}</p>
+            const data = await this.apiRequest(`fetch_posts.php?anon_id=${encodeURIComponent(this.anonId || 'null')}`);
+            const posts = data.posts || [];
+
+            if (posts.length === 0) {
+                feedSection.innerHTML = `
+                    <div class="glass-effect rounded-2xl shadow-lg p-8 max-w-md mx-auto elegant-card text-center" data-aos="zoom-in">
+                        <div class="w-16 h-16 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center mx-auto mb-4 floating-element">
+                            <i class="fas fa-comment-slash text-2xl"></i>
                         </div>
-                        ${commentsHtml}
+                        <h3 class="text-xl font-semibold text-neutral-700 mb-2">No whispers yet</h3>
+                        <p class="text-neutral-500 mb-4">Be the first to share something on UniWhisper!</p>
+                        <button id="create-first-post" class="gradient-bg text-white px-4 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 animate-ripple">
+                            <i class="fas fa-plus mr-2"></i> Create First Post
+                        </button>
                     </div>
                 `;
-                }).join('');
-                
-                document.querySelectorAll('.like-btn').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        const postId = btn.getAttribute('data-post-id');
-                        this.toggleLike(postId, btn);
-                    });
+                document.getElementById('create-first-post')?.addEventListener('click', () => {
+                    document.getElementById('post-content')?.focus();
                 });
-                
-                document.querySelectorAll('.comment-btn').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        const postId = btn.getAttribute('data-post-id');
-                        this.openCommentModal(postId);
-                    });
-                });
+                AOS.refresh();
+                return;
             }
-        } catch (error) {
-            console.error('Error loading posts:', error.message, error.stack);
-            this.showToast(`Error loading posts: ${error.message}`, 'error');
-        } finally {
-            if (loadingPosts) {
-                loadingPosts.classList.add('hidden');
-            }
-        }
-    }
-    
-    renderComments(comments) {
-        if (!comments || comments.length === 0) return '';
-        
-        const commentsHtml = comments.map(comment => {
-            const timeAgo = this.getTimeAgo(new Date(comment.created_at));
-            return `
-                <div class="flex space-x-3">
-                    <div class="flex-shrink-0">
-                        <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 text-sm">
-                            A
+
+            feedSection.innerHTML = posts.map(post => `
+                <div class="post-card glass-effect rounded-2xl shadow-xl p-6 elegant-card relative" data-aos="fade-up">
+                    <div class="user-info">
+                        <img src="${post.profile_picture || 'https://via.placeholder.com/100x100/F3F4F6/6B7280?text=A'}" alt="Profile" class="user-avatar">
+                        <div>
+                            <span class="user-name">${this.escapeHtml(post.display_name || 'Anonymous')}</span>
+                            <span class="timestamp">${this.getTimeAgo(new Date(post.created_at))}</span>
                         </div>
                     </div>
-                    <div class="flex-1">
-                        <div class="bg-gray-50 rounded-lg p-3">
-                            <p class="text-sm text-gray-800">${this.escapeHtml(comment.content)}</p>
+                    <p class="text-neutral-800">${this.escapeHtml(post.content)}</p>
+                    ${post.image ? `<div class="media-container"><img src="${post.image}" alt="Post image" class="post-image"></div>` : ''}
+                    <div class="flex justify-between items-center mt-3">
+                        <div class="flex items-center space-x-4">
+                            <button class="like-btn" data-post-id="${post.id}">
+                                <i class="fas fa-heart ${post.liked ? 'liked text-red-500' : 'text-neutral-500'}"></i> ${post.like_count || 0}
+                            </button>
+                            <button class="comment-btn" data-post-id="${post.id}">
+                                <i class="fas fa-comment text-blue-500"></i> ${post.comment_count || 0}
+                            </button>
                         </div>
-                        <p class="text-xs text-gray-500 mt-1">${timeAgo}</p>
+                    </div>
+                    <div class="comments mt-3" data-post-id="${post.id}">
+                        ${post.comments ? post.comments.map(comment => `
+                            <div class="comment border-t border-neutral-100/50 pt-3 mt-3">
+                                <div class="user-info">
+                                    <img src="${comment.profile_picture || 'https://via.placeholder.com/100x100/F3F4F6/6B7280?text=A'}" alt="Profile" class="user-avatar">
+                                    <div>
+                                        <span class="user-name">${this.escapeHtml(comment.display_name || 'Anonymous')}</span>
+                                        <span class="timestamp">${this.getTimeAgo(new Date(comment.created_at))}</span>
+                                    </div>
+                                </div>
+                                <p class="text-sm text-neutral-600 mt-2">${this.escapeHtml(comment.content)}</p>
+                                ${comment.media ? `<div class="media-container"><img src="${comment.media}" alt="Comment media" class="comment-image"></div>` : ''}
+                                ${comment.tags ? `<div class="flex flex-wrap gap-2 mt-2">${JSON.parse(comment.tags).map(tag => `<span class="bg-primary-100 text-primary-600 px-2 py-1 rounded-full text-xs">${this.escapeHtml(tag)}</span>`).join('')}</div>` : ''}
+                                <div class="comment-actions">
+                                    <button class="reply-btn" data-comment-id="${comment.id}">
+                                        <i class="fas fa-reply"></i> Reply
+                                    </button>
+                                    ${comment.replies && comment.replies.length > 0 ? `<button class="view-replies-btn" data-comment-id="${comment.id}"><i class="fas fa-comments"></i> View ${comment.replies.length} replies</button>` : ''}
+                                </div>
+                                <div class="replies" data-comment-id="${comment.id}" style="display: none;">
+                                    ${comment.replies ? comment.replies.map(reply => `
+                                        <div class="reply">
+                                            <div class="user-info">
+                                                <img src="${reply.profile_picture || 'https://via.placeholder.com/100x100/F3F4F6/6B7280?text=A'}" alt="Profile" class="user-avatar">
+                                                <div>
+                                                    <span class="user-name">${this.escapeHtml(reply.display_name || 'Anonymous')}</span>
+                                                    <span class="timestamp">${this.getTimeAgo(new Date(reply.created_at))}</span>
+                                                </div>
+                                            </div>
+                                            <p class="text-sm text-neutral-600 mt-2">${this.escapeHtml(reply.content)}</p>
+                                            ${reply.media ? `<div class="media-container"><img src="${reply.media}" alt="Reply media" class="reply-image"></div>` : ''}
+                                        </div>
+                                    `).join('') : ''}
+                                </div>
+                            </div>
+                        `).join('') : ''}
+                    </div>
+                </div>
+            `).join('');
+
+            document.querySelectorAll('.like-btn').forEach(btn => {
+                btn.addEventListener('click', () => this.toggleLike(btn.dataset.postId));
+            });
+            document.querySelectorAll('.comment-btn').forEach(btn => {
+                btn.addEventListener('click', () => this.openCommentModal(btn.dataset.postId));
+            });
+            document.querySelectorAll('.reply-btn').forEach(btn => {
+                btn.addEventListener('click', () => this.showReplyForm(btn.dataset.commentId));
+            });
+            document.querySelectorAll('.view-replies-btn').forEach(btn => {
+                btn.addEventListener('click', () => this.toggleReplies(btn.dataset.commentId));
+            });
+
+            AOS.refresh();
+        } catch (error) {
+            feedSection.innerHTML = `
+                <div class="glass-effect rounded-2xl shadow-lg p-8 max-w-md mx-auto elegant-card text-center" data-aos="zoom-in">
+                    <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-exclamation-triangle text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-neutral-700 mb-2">Error loading posts</h3>
+                    <p class="text-neutral-500 mb-4">Something went wrong. Please try again later.</p>
+                    <button id="retry-feed" class="gradient-bg text-white px-4 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 animate-ripple">
+                        <i class="fas fa-redo mr-2"></i> Retry
+                    </button>
+                </div>
+            `;
+            document.getElementById('retry-feed')?.addEventListener('click', () => this.loadFeed(true));
+            console.error('Error in loadFeed:', error.message, error.stack);
+            AOS.refresh();
+        }
+    }
+
+    async loadExplore(forceRefresh = false) {
+        let exploreContent = document.getElementById('explore-content');
+        if (!exploreContent) {
+            console.warn('Explore content container not found, creating fallback');
+            exploreContent = document.createElement('div');
+            exploreContent.id = 'explore-content';
+            exploreContent.className = 'space-y-8';
+            const exploreSection = document.getElementById('explore-section');
+            if (exploreSection) {
+                exploreSection.appendChild(exploreContent);
+            } else {
+                this.showToast('Error: Explore section not found', 'error');
+                return;
+            }
+        }
+
+        exploreContent.innerHTML = `
+            <div class="inline-flex items-center justify-center glass-effect rounded-2xl shadow px-6 py-4">
+                <div class="animate-pulse-soft mr-3">
+                    <div class="h-5 w-5 bg-primary-400 rounded-full"></div>
+                </div>
+                <p class="text-neutral-600 font-medium">Loading explore data...</p>
+            </div>
+        `;
+
+        try {
+            if (forceRefresh || !this.exploreData) {
+                this.exploreData = await this.apiRequest(`fetch_explore.php?anon_id=${encodeURIComponent(this.anonId || 'null')}`);
+            }
+
+            const { trending_posts, popular_tags, active_users } = this.exploreData;
+
+            exploreContent.innerHTML = `
+                <div data-aos="fade-up">
+                    <h3 class="text-xl font-semibold text-neutral-700 mb-4">Trending Posts</h3>
+                    <div class="space-y-4">
+                        ${trending_posts && trending_posts.length ? trending_posts.map(post => `
+                            <div class="post-card glass-effect rounded-2xl shadow-xl p-6 elegant-card" data-aos="fade-up">
+                                <p class="text-neutral-800">${this.escapeHtml(post.content)}</p>
+                                ${post.image ? `<img src="${post.image}" alt="Post image" class="mt-2 rounded-lg max-w-full h-auto">` : ''}
+                                <div class="flex justify-between items-center mt-3">
+                                    <div class="flex items-center space-x-4">
+                                        <span class="text-sm text-neutral-500"><i class="fas fa-heart text-red-500"></i> ${post.like_count || 0}</span>
+                                        <span class="text-sm text-neutral-500"><i class="fas fa-comment text-blue-500"></i> ${post.comment_count || 0}</span>
+                                    </div>
+                                    <span class="text-xs text-neutral-500">${this.getTimeAgo(new Date(post.created_at))}</span>
+                                </div>
+                            </div>
+                        `).join('') : '<p class="text-neutral-500">No trending posts yet.</p>'}
+                    </div>
+                </div>
+                <div class="mt-6" data-aos="fade-up" data-aos-delay="100">
+                    <h3 class="text-xl font-semibold text-neutral-700 mb-4">Popular Tags</h3>
+                    <div class="flex flex-wrap gap-2">
+                        ${popular_tags && popular_tags.length ? popular_tags.map(tag => `
+                            <span class="bg-primary-100 text-primary-600 px-3 py-1 rounded-full text-sm">${this.escapeHtml(tag.tag_name)} (${tag.tag_count})</span>
+                        `).join('') : '<p class="text-neutral-500">No popular tags yet.</p>'}
+                    </div>
+                </div>
+                <div class="mt-6" data-aos="fade-up" data-aos-delay="200">
+                    <h3 class="text-xl font-semibold text-neutral-700 mb-4">Active Users</h3>
+                    <div class="space-y-2">
+                        ${active_users && active_users.length ? active_users.map(user => `
+                            <div class="flex items-center space-x-2">
+                                <img src="${user.profile_picture || 'https://via.placeholder.com/100x100/F3F4F6/6B7280?text=A'}" alt="Profile" class="w-10 h-10 rounded-full">
+                                <span class="text-neutral-800">${this.escapeHtml(user.display_name)}</span>
+                                <span class="text-sm text-neutral-500">(${user.post_count} posts)</span>
+                            </div>
+                        `).join('') : '<p class="text-neutral-500">No active users yet.</p>'}
                     </div>
                 </div>
             `;
-        }).join('');
-        
-        return `
-            <div class="mt-4 pt-4 border-t border-gray-100">
-                <h4 class="text-sm font-medium text-gray-900 mb-3">Comments</h4>
-                <div class="space-y-2">
-                    ${commentsHtml}
+
+            AOS.refresh();
+        } catch (error) {
+            exploreContent.innerHTML = `
+                <div class="glass-effect rounded-2xl shadow-lg p-8 max-w-md mx-auto elegant-card text-center" data-aos="zoom-in">
+                    <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-exclamation-triangle text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-neutral-700 mb-2">Error loading explore data</h3>
+                    <p class="text-neutral-500 mb-4">Something went wrong. Please try again later.</p>
+                    <button id="retry-explore" class="gradient-bg text-white px-4 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 animate-ripple">
+                        <i class="fas fa-redo mr-2"></i> Retry
+                    </button>
                 </div>
+            `;
+            document.getElementById('retry-explore')?.addEventListener('click', () => this.loadExplore(true));
+            console.error('Error in loadExplore:', error.message, error.stack);
+            AOS.refresh();
+        }
+    }
+
+    async loadNotifications(forceRefresh = false) {
+        let notificationsContainer = document.getElementById('notifications-container');
+        if (!notificationsContainer) {
+            console.warn('Notifications container not found, creating fallback');
+            notificationsContainer = document.createElement('div');
+            notificationsContainer.id = 'notifications-container';
+            notificationsContainer.className = 'space-y-4';
+            const notificationsSection = document.getElementById('notifications-section');
+            if (notificationsSection) {
+                notificationsSection.appendChild(notificationsContainer);
+            } else {
+                this.showToast('Error: Notifications section not found', 'error');
+                return;
+            }
+        }
+
+        notificationsContainer.innerHTML = `
+            <div class="inline-flex items-center justify-center glass-effect rounded-2xl shadow px-6 py-4">
+                <div class="animate-pulse-soft mr-3">
+                    <div class="h-5 w-5 bg-primary-400 rounded-full"></div>
+                </div>
+                <p class="text-neutral-600 font-medium">Loading notifications...</p>
             </div>
         `;
-    }
-    
-    async toggleVote(postId, voteType, voteBtn) {
-        if (!this.anonId) {
-            this.showToast("Error: User not initialized", "error");
-            return;
-        }
-
-        if (!voteBtn) {
-            console.error("Vote button is null for postId:", postId);
-            this.showToast("Error: Vote button not found", "error");
-            return;
-        }
 
         try {
-            const response = await fetch(`${this.apiBase}/vote.php`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ anon_id: this.anonId, post_id: postId, vote_type: voteType })
-            });
-            if (!response.ok) {
-                throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+            if (forceRefresh || !this.notifications) {
+                const data = await this.apiRequest(`fetch_notifications.php?anon_id=${encodeURIComponent(this.anonId || 'null')}`);
+                this.notifications = data.notifications || [];
+                const badge = document.getElementById('notification-badge');
+                if (badge) {
+                    badge.innerHTML = data.unread_count > 0 ? data.unread_count : '';
+                    badge.classList.toggle('hidden', data.unread_count === 0);
+                }
             }
-            const data = await response.json();
 
-            if (data.success) {
-                const upvoteCountElement = voteBtn.closest(".flex.space-x-4").querySelector(".upvote-count");
-                const downvoteCountElement = voteBtn.closest(".flex.space-x-4").querySelector(".downvote-count");
-
-                if (upvoteCountElement) upvoteCountElement.textContent = data.upvotes;
-                if (downvoteCountElement) downvoteCountElement.textContent = data.downvotes;
-
-                // Update button styles based on current vote status (this would require more complex logic
-                // to track user's current vote, but for simplicity, we'll just update counts)
-                this.showToast(`Post ${voteType}d successfully!`, "success");
-            } else {
-                throw new Error(data.error || "Failed to toggle vote");
+            if (this.notifications.length === 0) {
+                notificationsContainer.innerHTML = `
+                    <div class="glass-effect rounded-2xl shadow-lg p-8 max-w-md mx-auto elegant-card text-center" data-aos="zoom-in">
+                        <div class="w-16 h-16 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center mx-auto mb-4 floating-element">
+                            <i class="fas fa-bell-slash text-2xl"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold text-neutral-700 mb-2">No new notifications</h3>
+                        <p class="text-neutral-500 mb-4">You're all caught up!</p>
+                    </div>
+                `;
+                AOS.refresh();
+                return;
             }
+
+            notificationsContainer.innerHTML = this.notifications.map(notification => `
+                <div class="glass-effect rounded-2xl shadow-xl p-6 elegant-card ${notification.is_read ? 'opacity-75' : ''}" data-aos="fade-up">
+                    <div class="flex items-center space-x-2">
+                        <img src="${notification.source_profile_picture || 'https://via.placeholder.com/100x100/F3F4F6/6B7280?text=A'}" alt="Profile" class="w-8 h-8 rounded-full">
+                        <p class="text-neutral-800">
+                            <span class="font-semibold">${this.escapeHtml(notification.source_display_name || 'Anonymous')}</span>
+                            ${notification.type === 'like' ? 'liked your post' : 
+                              notification.type === 'comment' ? 'commented on your post' : 
+                              notification.type === 'mention' ? 'mentioned you' : 
+                              'followed you'}
+                        </p>
+                    </div>
+                    ${notification.post_content ? `<p class="text-sm text-neutral-600 mt-1">"${this.escapeHtml(notification.post_content.substring(0, 50))}..."</p>` : ''}
+                    ${notification.comment_content ? `<p class="text-sm text-neutral-600 mt-1">"${this.escapeHtml(notification.comment_content.substring(0, 50))}..."</p>` : ''}
+                    <span class="text-xs text-neutral-500">${this.getTimeAgo(new Date(notification.created_at))}</span>
+                </div>
+            `).join('');
+
+            AOS.refresh();
         } catch (error) {
-            console.error("Error toggling vote:", error.message, error.stack);
-            this.showToast(`Error updating vote: ${error.message}`, "error");
+            notificationsContainer.innerHTML = `
+                <div class="glass-effect rounded-2xl shadow-lg p-8 max-w-md mx-auto elegant-card text-center" data-aos="zoom-in">
+                    <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-exclamation-triangle text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-neutral-700 mb-2">Error loading notifications</h3>
+                    <p class="text-neutral-500 mb-4">Something went wrong. Please try again later.</p>
+                    <button id="retry-notifications" class="gradient-bg text-white px-4 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 animate-ripple">
+                        <i class="fas fa-redo mr-2"></i> Retry
+                    </button>
+                </div>
+            `;
+            document.getElementById('retry-notifications')?.addEventListener('click', () => this.loadNotifications(true));
+            console.error('Error in loadNotifications:', error.message, error.stack);
+            AOS.refresh();
         }
     }
-    
+
+    async loadProfile(forceRefresh = false) {
+        let profileContent = document.getElementById('profile-content');
+        if (!profileContent) {
+            console.warn('Profile content container not found, creating fallback');
+            profileContent = document.createElement('div');
+            profileContent.id = 'profile-content';
+            profileContent.className = 'space-y-8';
+            const profileSection = document.getElementById('profile-section');
+            if (profileSection) {
+                profileSection.appendChild(profileContent);
+            } else {
+                this.showToast('Error: Profile section not found', 'error');
+                return;
+            }
+        }
+
+        profileContent.innerHTML = `
+            <div class="inline-flex items-center justify-center glass-effect rounded-2xl shadow px-6 py-4">
+                <div class="animate-pulse-soft mr-3">
+                    <div class="h-24 w-24 bg-primary-400 rounded-full"></div>
+                </div>
+                <p class="text-neutral-600 font-medium">Loading your profile...</p>
+            </div>
+        `;
+
+        try {
+            if (forceRefresh || !this.profileData) {
+                this.profileData = await this.apiRequest(`fetch_profile.php?anon_id=${encodeURIComponent(this.anonId || 'null')}`);
+            }
+
+            const { profile, stats, recent_posts } = this.profileData;
+
+            profileContent.innerHTML = `
+                <div class="glass-effect rounded-2xl shadow-xl p-6 elegant-card" data-aos="fade-up">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <img id="profile-picture-display" src="${profile.profile_picture || 'https://via.placeholder.com/100x100/F3F4F6/6B7280?text=A'}" alt="Profile Picture" class="w-24 h-24 rounded-full object-cover border-4 border-primary-300 shadow-md">
+                        <div>
+                            <h3 id="profile-display-name" class="text-2xl font-bold text-neutral-800">${this.escapeHtml(profile.display_name)}</h3>
+                            <p id="user-id" class="text-neutral-500 text-sm">
+                                <span class="font-semibold">ID:</span> <span id="profile-anon-id">${this.escapeHtml(profile.anon_id.substring(0, 12))}...</span>
+                                <button id="copy-id-btn" class="ml-2 text-primary-500 hover:text-primary-700 text-xs"><i class="fas fa-copy"></i> Copy</button>
+                            </p>
+                            <p id="profile-created-at" class="text-neutral-500 text-sm">Joined: ${new Date(profile.created_at).toLocaleDateString()}</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4 text-center mt-6">
+                        <div>
+                            <p id="profile-post-count" class="text-2xl font-bold gradient-text">${stats.post_count || 0}</p>
+                            <p class="text-neutral-500 text-sm">Posts</p>
+                        </div>
+                        <div>
+                            <p id="profile-comment-count" class="text-2xl font-bold gradient-text">${stats.comment_count || 0}</p>
+                            <p class="text-neutral-500 text-sm">Comments</p>
+                        </div>
+                        <div>
+                            <p id="profile-received-likes" class="text-2xl font-bold gradient-text">${stats.received_likes || 0}</p>
+                            <p class="text-neutral-500 text-sm">Received Likes</p>
+                        </div>
+                    </div>
+                    <button id="edit-profile-btn" class="mt-6 gradient-bg text-white px-5 py-2 rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 animate-ripple">
+                        <i class="fas fa-edit mr-2"></i> Edit Profile
+                    </button>
+                </div>
+            `;
+
+            const recentPostsContainer = document.getElementById('profile-recent-posts-container');
+            if (recentPostsContainer) {
+                if (recent_posts && recent_posts.length > 0) {
+                    recentPostsContainer.innerHTML = recent_posts.map(post => `
+                        <div class="post-card glass-effect rounded-2xl shadow-xl p-6 elegant-card" data-aos="fade-up">
+                            <p class="text-neutral-800">${this.escapeHtml(post.content)}</p>
+                            ${post.image ? `<img src="${post.image}" alt="Post image" class="mt-2 rounded-lg max-w-full h-auto">` : ''}
+                            <div class="flex justify-between items-center mt-3">
+                                <div class="flex items-center space-x-4">
+                                    <span class="text-sm text-neutral-500"><i class="fas fa-heart text-red-500"></i> ${post.like_count || 0}</span>
+                                    <span class="text-sm text-neutral-500"><i class="fas fa-comment text-blue-500"></i> ${post.comment_count || 0}</span>
+                                </div>
+                                <span class="text-xs text-neutral-500">${this.getTimeAgo(new Date(post.created_at))}</span>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    recentPostsContainer.innerHTML = `
+                        <div class="text-center py-8" data-aos="zoom-in">
+                            <p class="text-neutral-500">You haven't made any posts yet.</p>
+                        </div>
+                    `;
+                }
+            }
+
+            const profileForm = document.getElementById('profile-form');
+            if (profileForm) {
+                profileForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.saveProfile();
+                });
+            }
+
+            const copyIdBtn = document.getElementById('copy-id-btn');
+            if (copyIdBtn) copyIdBtn.addEventListener('click', () => this.copyAnonId());
+
+            AOS.refresh();
+        } catch (error) {
+            profileContent.innerHTML = `
+                <div class="glass-effect rounded-2xl shadow-lg p-8 max-w-md mx-auto elegant-card text-center" data-aos="zoom-in">
+                    <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-exclamation-triangle text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-neutral-700 mb-2">Error loading profile</h3>
+                    <p class="text-neutral-500 mb-4">Something went wrong. Please try again later.</p>
+                    <button id="retry-profile" class="gradient-bg text-white px-4 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 animate-ripple">
+                        <i class="fas fa-redo mr-2"></i> Retry
+                    </button>
+                </div>
+            `;
+            document.getElementById('retry-profile')?.addEventListener('click', () => this.loadProfile(true));
+            console.error('Error in loadProfile:', error.message, error.stack);
+            AOS.refresh();
+        }
+    }
+
+    async toggleLike(postId) {
+        try {
+            const data = await this.apiRequest('like_post.php', {
+                method: 'POST',
+                body: JSON.stringify({ anon_id: this.anonId, post_id: postId })
+            });
+            this.showToast(data.liked ? 'Post liked!' : 'Post unliked!', 'success');
+            await this.loadView(this.currentView, true);
+        } catch (error) {
+            console.error('Error toggling like:', error);
+            this.showToast('Error toggling like', 'error');
+        }
+    }
+
     openCommentModal(postId) {
         this.currentCommentPostId = postId;
-        const modal = document.getElementById('comment-modal');
+        const commentModal = document.getElementById('comment-modal');
         const commentContent = document.getElementById('comment-content');
-        
-        if (!modal || !commentContent) {
-            console.error('Comment modal elements missing:', {
-                modal: !!modal,
-                commentContent: !!commentContent
-            });
-            this.showToast('Error: Comment modal elements not found', 'error');
-            return;
+        const commentMedia = document.getElementById('comment-media');
+        if (commentModal && commentContent) {
+            commentModal.classList.remove('hidden');
+            commentContent.value = '';
+            if (commentMedia) commentMedia.value = '';
+            document.getElementById('comment-char-count').textContent = '0/500 characters';
+            document.getElementById('submit-comment').disabled = true;
+            commentContent.focus();
         }
-        
-        commentContent.value = '';
-        const commentCharCount = document.getElementById('comment-char-count');
-        const submitCommentBtn = document.getElementById('submit-comment');
-        
-        if (!commentCharCount || !submitCommentBtn) {
-            console.error('Comment modal elements missing:', {
-                commentCharCount: !!commentCharCount,
-                submitCommentBtn: !!submitCommentBtn
-            });
-            this.showToast('Error: Comment modal elements not found', 'error');
-            return;
-        }
-        
-        commentCharCount.textContent = '0';
-        submitCommentBtn.disabled = true;
-        
-        modal.classList.remove('hidden');
-        commentContent.focus();
     }
-    
+
     closeCommentModal() {
-        const modal = document.getElementById('comment-modal');
-        if (!modal) {
-            console.error('Comment modal element missing');
-            this.showToast('Error: Comment modal element not found', 'error');
-            return;
+        const commentModal = document.getElementById('comment-modal');
+        if (commentModal) {
+            commentModal.classList.add('hidden');
+            this.currentCommentPostId = null;
         }
-        modal.classList.add('hidden');
-        this.currentCommentPostId = null;
     }
-    
+
     async submitComment() {
         const commentContent = document.getElementById('comment-content');
-        if (!commentContent) {
-            console.error('Comment content element missing');
-            this.showToast('Error: Comment content element not found', 'error');
+        const commentMedia = document.getElementById('comment-media');
+        if (!commentContent || !this.currentCommentPostId) {
+            this.showToast('Error: Cannot submit comment', 'error');
             return;
         }
-        
+
         const content = commentContent.value.trim();
-        
-        if (!content || !this.anonId || !this.currentCommentPostId) {
-            this.showToast('Please enter a comment', 'error');
+        if (content.length === 0 || content.length > 500) {
+            this.showToast('Comment must be between 1 and 500 characters', 'error');
             return;
         }
-        
+
+        const formData = new FormData();
+        formData.append('anon_id', this.anonId);
+        formData.append('post_id', this.currentCommentPostId);
+        formData.append('content', content);
+        if (commentMedia && commentMedia.files[0]) {
+            formData.append('media', commentMedia.files[0]);
+        }
+        // Extract tags from content (e.g., #tag)
+        const tags = content.match(/#[^\s#]+/g)?.map(tag => tag.substring(1)) || [];
+        formData.append('tags', JSON.stringify(tags));
+
         try {
-            const response = await fetch(`${this.apiBase}/comment_post.php`, {
+            await this.apiRequest('comment_post.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    anon_id: this.anonId,
-                    post_id: this.currentCommentPostId,
-                    content
-                })
+                body: formData
             });
-            if (!response.ok) {
-                throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
-            }
-            const data = await response.json();
-            
-            if (data.success) {
-                this.closeCommentModal();
-                this.showToast('Comment added successfully!', 'success');
-                await this.loadPosts();
-            } else {
-                throw new Error(data.error || 'Failed to submit comment');
-            }
+            this.showToast('Comment submitted successfully!', 'success');
+            this.closeCommentModal();
+            await this.loadView(this.currentView, true);
         } catch (error) {
-            console.error('Error submitting comment:', error.message, error.stack);
+            console.error('Error submitting comment:', error);
             this.showToast(`Error submitting comment: ${error.message}`, 'error');
         }
     }
-    
-    showToast(message, type = 'info') {
-        const toastContainer = document.getElementById('toast-container');
-        if (!toastContainer) {
-            console.error('Toast container element missing');
+
+    async submitPost() {
+        const postContent = document.getElementById('post-content');
+        const postMedia = document.getElementById('post-media');
+        if (!postContent || !this.anonId) {
+            this.showToast('Error: Cannot submit post', 'error');
             return;
         }
-        
+
+        const content = postContent.value.trim();
+        if (content.length === 0 || content.length > 1000) {
+            this.showToast('Post content must be between 1 and 1000 characters', 'error');
+            return;
+        }
+
+        // Use FormData for file uploads
+        const formData = new FormData();
+        formData.append('anon_id', this.anonId);
+        formData.append('content', content);
+        if (postMedia && postMedia.files[0]) {
+            formData.append('image', postMedia.files[0]);
+        }
+
+        try {
+            await this.apiRequest('submit_post.php', {
+                method: 'POST',
+                body: formData
+                // Don't set Content-Type header for FormData - browser will set it automatically
+            });
+            this.showToast('Post submitted successfully!', 'success');
+            postContent.value = '';
+            if (postMedia) postMedia.value = '';
+            document.getElementById('char-count').textContent = '0/1000 characters';
+            document.getElementById('submit-btn').disabled = true;
+            await this.loadView('feed', true);
+        } catch (error) {
+            console.error('Error submitting post:', error);
+            this.showToast(`Error submitting post: ${error.message}`, 'error');
+        }
+    }
+
+    async saveProfile() {
+        const form = document.getElementById('profile-form');
+        if (!form) {
+            this.showToast('Error: Profile form not found', 'error');
+            return;
+        }
+
+        const formData = new FormData(form);
+        formData.append('anon_id', this.anonId);
+
+        try {
+            await this.apiRequest('update_profile.php', {
+                method: 'POST',
+                body: formData
+            });
+            this.showToast('Profile updated successfully!', 'success');
+            this.toggleEditProfile(false);
+            await this.loadProfile(true);
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            this.showToast(`Error updating profile: ${error.message}`, 'error');
+        }
+    }
+
+    toggleEditProfile(show) {
+        const profileContent = document.getElementById('profile-content');
+        const editProfileForm = document.getElementById('edit-profile-form');
+
+        if (!profileContent || !editProfileForm) return;
+
+        if (show) {
+            profileContent.classList.add('hidden');
+            editProfileForm.classList.remove('hidden');
+            document.getElementById('edit-display-name').value = this.profileData?.profile.display_name || 'Anonymous User';
+        } else {
+            profileContent.classList.remove('hidden');
+            editProfileForm.classList.add('hidden');
+        }
+    }
+
+    showToast(message, type = 'info') {
+        const toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) return;
+
         const toast = document.createElement('div');
-        
-        const bgColor = type === 'success' ? 'bg-green-500' : 
-                       type === 'error' ? 'bg-red-500' : 'bg-blue-500';
-        
-        toast.className = `${bgColor} text-white px-6 py-3 rounded-lg shadow-lg transform translate-x-full transition-transform duration-300`;
+        const bgColor = type === 'success' ? 'bg-secondary-500' :
+                        type === 'error' ? 'bg-red-500' : 'bg-primary-500';
+
+        toast.className = `${bgColor} text-white px-6 py-3 rounded-lg shadow-lg transform translate-x-full transition-transform duration-300 glass-effect toast`;
         toast.textContent = message;
-        
+
         toastContainer.appendChild(toast);
-        
+
         setTimeout(() => {
             toast.classList.remove('translate-x-full');
         }, 100);
-        
+
         setTimeout(() => {
             toast.classList.add('translate-x-full');
             setTimeout(() => {
@@ -489,11 +895,11 @@ class UniWhisper {
             }, 300);
         }, 3000);
     }
-    
+
     getTimeAgo(date) {
         const now = new Date();
         const diffInSeconds = Math.floor((now - date) / 1000);
-        
+
         if (diffInSeconds < 60) {
             return 'Just now';
         } else if (diffInSeconds < 3600) {
@@ -507,89 +913,88 @@ class UniWhisper {
             return `${days} day${days > 1 ? 's' : ''} ago`;
         }
     }
-    
+
     escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     }
-    async fetchExplore() {
-        try {
-            const response = await fetch(`${this.apiBase}/fetch_explore.php`);
-            if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-            const data = await response.json();
-            
-            if (data.success) {
-                return data;
-            } else {
-                throw new Error(data.error || 'Failed to fetch explore data');
-            }
-        } catch (error) {
-            console.error('Error fetching explore data:', error);
-            this.showToast(`Error loading explore: ${error.message}`, 'error');
-            return null;
-        }
-    }
 
-    async fetchNotifications() {
-        if (!this.anonId) return null;
+    showReplyForm(commentId) {
+        // Hide any existing reply forms
+        document.querySelectorAll('.reply-form').forEach(form => form.remove());
         
-        try {
-            const response = await fetch(`${this.apiBase}/fetch_notifications.php?anon_id=${encodeURIComponent(this.anonId)}`);
-            if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-            const data = await response.json();
+        // Create reply form
+        const replyForm = document.createElement('div');
+        replyForm.className = 'reply-form';
+        replyForm.innerHTML = `
+            <textarea class="reply-input" placeholder="Write a reply..." maxlength="500"></textarea>
+            <div class="flex gap-2 mt-2">
+                <button class="reply-submit" data-comment-id="${commentId}">Reply</button>
+                <button class="reply-cancel">Cancel</button>
+            </div>
+        `;
+        
+        // Find the comment and append the form
+        const comment = document.querySelector(`[data-comment-id="${commentId}"]`).closest('.comment');
+        if (comment) {
+            comment.appendChild(replyForm);
+            replyForm.querySelector('.reply-input').focus();
             
-            if (data.success) {
-                return data.notifications;
-            } else {
-                throw new Error(data.error || 'Failed to fetch notifications');
-            }
-        } catch (error) {
-            console.error('Error fetching notifications:', error);
-            this.showToast(`Error loading notifications: ${error.message}`, 'error');
-            return null;
+            // Add event listeners
+            replyForm.querySelector('.reply-submit').addEventListener('click', () => this.submitReply(commentId));
+            replyForm.querySelector('.reply-cancel').addEventListener('click', () => replyForm.remove());
         }
     }
 
-    async fetchProfile(anonId = this.anonId)
+    toggleReplies(commentId) {
+        const repliesContainer = document.querySelector(`.replies[data-comment-id="${commentId}"]`);
+        const toggleBtn = document.querySelector(`.view-replies-btn[data-comment-id="${commentId}"]`);
+        
+        if (repliesContainer && toggleBtn) {
+            const isVisible = repliesContainer.style.display !== 'none';
+            repliesContainer.style.display = isVisible ? 'none' : 'block';
+            toggleBtn.innerHTML = isVisible ? 
+                `<i class="fas fa-comments"></i> View replies` : 
+                `<i class="fas fa-comments"></i> Hide replies`;
+        }
+    }
 
-    async reportPost(postId) {
+    async submitReply(commentId) {
+        const replyForm = document.querySelector('.reply-form');
+        const replyInput = replyForm?.querySelector('.reply-input');
+        
+        if (!replyInput || !commentId) {
+            this.showToast('Error: Cannot submit reply', 'error');
+            return;
+        }
+
+        const content = replyInput.value.trim();
+        if (content.length === 0 || content.length > 500) {
+            this.showToast('Reply must be between 1 and 500 characters', 'error');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('anon_id', this.anonId);
+        formData.append('comment_id', commentId);
+        formData.append('content', content);
+
         try {
-            const reason = prompt("Please enter a reason for reporting this post (optional):");
-            const data = await this.apiRequest("report_post.php", {
-                method: "POST",
-                body: JSON.stringify({
-                    post_id: postId,
-                    anon_id: this.anonId,
-                    reason: reason || "No reason provided"
-                })
+            await this.apiRequest('reply_post.php', {
+                method: 'POST',
+                body: formData
             });
-            this.showToast(data.message, "success");
+            this.showToast('Reply submitted successfully!', 'success');
+            replyForm.remove();
+            await this.loadView(this.currentView, true);
         } catch (error) {
-            console.error("Error reporting post:", error);
-            this.showToast(`Error reporting post: ${error.message}`, "error");
+            console.error('Error submitting reply:', error);
+            this.showToast(`Error submitting reply: ${error.message}`, 'error');
         }
     }
+}
 
-
-
-
-    async redeemPoints(feature) {
-        try {
-            const data = await this.apiRequest("redeem_points.php", {
-                method: "POST",
-                body: JSON.stringify({
-                    anon_id: this.anonId,
-                    feature: feature
-                })
-            });
-            this.showToast(data.message, "success");
-            // Optionally, refresh profile data to show updated points
-            await this.loadProfile(true);
-        } catch (error) {
-            console.error("Error redeeming points:", error);
-            this.showToast(`Error redeeming points: ${error.message}`, "error");
-        }
-    }
-
-
+document.addEventListener('DOMContentLoaded', () => {
+    window.uniWhisperApp = new UniWhisper();
+});

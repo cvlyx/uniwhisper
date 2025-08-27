@@ -24,7 +24,6 @@ try {
             anon_id,
             display_name,
             profile_picture,
-            points,
             created_at
         FROM users 
         WHERE anon_id = ?

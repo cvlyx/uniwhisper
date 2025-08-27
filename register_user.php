@@ -46,7 +46,7 @@ if (empty($selected_name) || empty($selected_avatar)) {
 
 try {
     $anon_id = bin2hex(random_bytes(16));
-    $stmt = $pdo->prepare("INSERT INTO users (anon_id, display_name, profile_picture, points) VALUES (?, ?, ?, 50)");
+    $stmt = $pdo->prepare("INSERT INTO users (anon_id, display_name, profile_picture) VALUES (?, ?, ?)");
     $stmt->execute([$anon_id, $selected_name, $selected_avatar]);
     echo json_encode([
         'success' => true,
