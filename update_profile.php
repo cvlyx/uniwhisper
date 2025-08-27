@@ -59,7 +59,12 @@ try {
     $stmt = $pdo->prepare($query);
     $stmt->execute($params);
 
-    echo json_encode(['success' => true]);
+    // Fetch updated user data to return
+    $stmt = $pdo->prepare("SELECT anon_id, display_name, profile_picture, points FROM users WHERE anon_id = ?");
+    $stmt->execute([$anon_id]);
+    $updated_profile = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    echo json_encode(["success" => true, "profile" => $updated_profile]);
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);

@@ -24,7 +24,7 @@ try {
         LEFT JOIN likes l ON p.id = l.post_id
         LEFT JOIN comments c ON p.id = c.post_id
         LEFT JOIN users u ON p.anon_id = u.anon_id
-        WHERE p.created_at >= NOW() - INTERVAL '24 hours'
+        WHERE p.created_at >= NOW() - INTERVAL '7 DAY'
         GROUP BY p.id, p.content, p.image, p.created_at, u.display_name, u.profile_picture
         ORDER BY like_count DESC, comment_count DESC
         LIMIT 20

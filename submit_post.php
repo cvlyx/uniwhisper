@@ -71,7 +71,12 @@ try {
         $stmt = $pdo->prepare("INSERT INTO posts (anon_id, content, image) VALUES (?, ?, ?)");
         $stmt->execute([$anon_id, $content, $image]);
         $post_id = $pdo->lastInsertId();
-        echo json_encode(['success' => true, 'post_id' => $post_id, 'message' => 'Post submitted']);
+
+        // Award points for new post
+        $stmt = $pdo->prepare("UPDATE users SET points = points + 10 WHERE anon_id = ?");
+        $stmt->execute([$anon_id]);
+
+        echo json_encode(["success" => true, "post_id" => $post_id, "message" => "Post submitted"]);
     } elseif ($action === 'like' && isset($input['post_id'])) {
         $post_id = $input['post_id'];
         $stmt = $pdo->prepare("INSERT INTO likes (post_id, anon_id) VALUES (?, ?) ON CONFLICT DO NOTHING");

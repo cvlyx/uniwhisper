@@ -76,6 +76,10 @@ try {
     $stmt->execute([$post_id, $anon_id, $content, $media, $tags]);
     $comment_id = $pdo->lastInsertId();
 
+    // Award points for new comment
+    $stmt = $pdo->prepare("UPDATE users SET points = points + 5 WHERE anon_id = ?");
+    $stmt->execute([$anon_id]);
+
     if ($post['post_owner_id'] !== $anon_id) {
         $stmt = $pdo->prepare("INSERT INTO notifications (anon_id, type, source_id, post_id, comment_id) VALUES (?, 'comment', ?, ?, ?)");
         $stmt->execute([$post['post_owner_id'], $anon_id, $post_id, $comment_id]);
