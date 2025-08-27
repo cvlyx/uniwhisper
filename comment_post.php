@@ -27,11 +27,13 @@ if (strlen($content) > 500) {
 }
 
 if (isset($_FILES['media']) && $_FILES['media']['error'] === UPLOAD_ERR_OK) {
-    $uploadDir = '/tmp/uploads/comments/';
+    $uploadDir = __DIR__ . '/uploads/comments/';
+    $webPath = 'uploads/comments/';
     if (!file_exists($uploadDir)) mkdir($uploadDir, 0777, true);
     $fileExtension = pathinfo($_FILES['media']['name'], PATHINFO_EXTENSION);
     $fileName = uniqid() . '.' . $fileExtension;
     $filePath = $uploadDir . $fileName;
+    $webFilePath = $webPath . $fileName;
     $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'video/mp4'];
     if (!in_array($_FILES['media']['type'], $allowedTypes)) {
         http_response_code(400);
@@ -44,7 +46,7 @@ if (isset($_FILES['media']) && $_FILES['media']['error'] === UPLOAD_ERR_OK) {
         exit;
     }
     if (move_uploaded_file($_FILES['media']['tmp_name'], $filePath)) {
-        $media = $filePath;
+        $media = $webFilePath;
     } else {
         http_response_code(500);
         echo json_encode(['error' => 'Upload failed']);

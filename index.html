@@ -435,25 +435,162 @@
         .user-info {
             display: flex;
             align-items: center;
-            gap: 8px;
-            margin-bottom: 5px;
+            gap: 12px;
+            margin-bottom: 12px;
+            padding: 8px 0;
         }
 
         .user-avatar {
-            width: 32px;
-            height: 32px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             object-fit: cover;
+            border: 2px solid rgba(139, 92, 246, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .user-avatar:hover {
+            border-color: rgba(139, 92, 246, 0.5);
+            transform: scale(1.05);
         }
 
         .user-name {
-            font-weight: 500;
+            font-weight: 600;
             color: #3f3f46;
+            font-size: 14px;
+            margin-bottom: 2px;
         }
 
         .timestamp {
             font-size: 12px;
             color: #a1a1aa;
+            font-weight: 400;
+        }
+
+        /* Enhanced post styling */
+        .post-card {
+            transition: all 0.3s ease;
+            overflow: hidden;
+            border-left: 4px solid;
+            border-image: linear-gradient(to bottom, #8b5cf6, #0d9488) 1;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(12px);
+        }
+
+        .post-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(139, 92, 246, 0.15), 0 10px 10px -5px rgba(139, 92, 246, 0.1);
+        }
+
+        /* Comment styling */
+        .comment {
+            background: rgba(248, 250, 252, 0.8);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 12px;
+            border: 1px solid rgba(139, 92, 246, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .comment:hover {
+            background: rgba(248, 250, 252, 0.95);
+            border-color: rgba(139, 92, 246, 0.2);
+        }
+
+        .comment .user-avatar {
+            width: 36px;
+            height: 36px;
+        }
+
+        /* Reply styling */
+        .reply {
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 10px;
+            padding: 12px;
+            margin-left: 20px;
+            margin-top: 8px;
+            border-left: 3px solid rgba(13, 148, 136, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .reply:hover {
+            background: rgba(255, 255, 255, 0.9);
+            border-left-color: rgba(13, 148, 136, 0.5);
+        }
+
+        .reply .user-avatar {
+            width: 32px;
+            height: 32px;
+        }
+
+        /* Action buttons */
+        .comment-actions, .reply-actions {
+            display: flex;
+            gap: 16px;
+            margin-top: 12px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .reply-btn, .view-replies-btn {
+            background: none;
+            border: none;
+            color: #8b5cf6;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .reply-btn:hover, .view-replies-btn:hover {
+            background: rgba(139, 92, 246, 0.1);
+            transform: translateY(-1px);
+        }
+
+        /* Like and comment buttons */
+        .like-btn, .comment-btn, .save-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+            color: #71717a;
+        }
+
+        .like-btn:hover {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+        }
+
+        .comment-btn:hover {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+        }
+
+        .save-btn:hover {
+            background: rgba(234, 179, 8, 0.1);
+            color: #eab308;
+        }
+
+        .like-btn.liked {
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .save-btn.saved {
+            color: #eab308;
+            background: rgba(234, 179, 8, 0.1);
         }
     </style>
 </head>
