@@ -1,5 +1,4 @@
 <?php
-// Enable error reporting for debugging
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
@@ -7,7 +6,6 @@ error_reporting(E_ALL);
 require_once 'config.php';
 
 try {
-    // Get anon_id from query parameters
     $anon_id = isset($_GET['anon_id']) ? trim($_GET['anon_id']) : '';
     if (empty($anon_id)) {
         http_response_code(401);
@@ -15,18 +13,14 @@ try {
         exit;
     }
 
-    // Verify user exists
     $stmt = $pdo->prepare('SELECT id FROM users WHERE anon_id = ?');
     $stmt->execute([$anon_id]);
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if (!$user) {
+    if (!$stmt->fetch()) {
         http_response_code(401);
         echo json_encode(['success' => false, 'error' => 'Unauthorized: Invalid anon_id']);
         exit;
     }
 
-    // Fetch posts with like and comment counts
     $stmt = $pdo->prepare('
         SELECT 
             p.id, p.content, p.image, p.created_at,
@@ -42,9 +36,7 @@ try {
     $stmt->execute([$anon_id]);
     $posts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Fetch comments and replies for each post
     foreach ($posts as &$post) {
-        // Get comments for this post
         $stmt = $pdo->prepare('
             SELECT c.id, c.content, c.media, c.tags, c.created_at,
                    u.display_name, u.profile_picture
@@ -55,8 +47,7 @@ try {
         ');
         $stmt->execute([$post['id']]);
         $comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Get replies for each comment
+
         foreach ($comments as &$comment) {
             $stmt = $pdo->prepare('
                 SELECT r.id, r.content, r.media, r.created_at,
@@ -69,8 +60,8 @@ try {
             $stmt->execute([$comment['id']]);
             $comment['replies'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
-        
         $post['comments'] = $comments;
+        $post['timestamp'] = (new DateTime($post['created_at']))->format('M d, Y h:ia');
     }
 
     echo json_encode([
@@ -78,7 +69,7 @@ try {
         'posts' => $posts
     ]);
 } catch (Exception $e) {
-    error_log('Error in fetch_posts.php: ' . $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine());
+    error_log('Error in fetch_posts.php: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode(['success' => false, 'error' => 'Server error: ' . $e->getMessage()]);
 }

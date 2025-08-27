@@ -15,14 +15,17 @@ try {
     die("Connection failed: " . $e->getMessage());
 }
 
-// Enhanced CORS headers
 header("Access-Control-Allow-Origin: https://uniwhisper.onrender.com");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 header("Content-Type: application/json");
 
-// Handle preflight requests
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     exit(0);
 }
+
+// Set upload limits
+ini_set('upload_max_filesize', '10M');
+ini_set('post_max_size', '10M');
+ini_set('max_execution_time', 30);
 ?>
