@@ -318,39 +318,55 @@ class UniWhisper {
             }
 
             feedSection.innerHTML = posts.map(post => `
-                <div class="post-card glass-effect rounded-2xl shadow-xl p-6 elegant-card relative" data-aos="fade-up">
+                <div class="modern-card rounded-3xl shadow-xl p-8 hover-lift relative" data-aos="fade-up">
                     <div class="user-info">
-                        <img src="${post.profile_picture || 'https://via.placeholder.com/100x100/F3F4F6/6B7280?text=A'}" alt="Profile" class="user-avatar">
+                        <img src="${post.profile_picture || 'https://via.placeholder.com/100x100/8B5CF6/FFFFFF?text=' + (post.display_name ? post.display_name.charAt(0) : 'A')}" alt="Profile" class="user-avatar status-online">
                         <div>
-                            <span class="user-name">${this.escapeHtml(post.display_name || 'Anonymous')}</span>
-                            <span class="timestamp">${this.getTimeAgo(new Date(post.created_at))}</span>
+                            <span class="user-name text-lg font-semibold">${this.escapeHtml(post.display_name || 'Anonymous')}</span>
+                            <div class="timestamp flex items-center">
+                                <i class="fas fa-clock mr-1"></i>
+                                ${this.getTimeAgo(new Date(post.created_at))}
+                            </div>
                         </div>
                     </div>
-                    <p class="text-neutral-800">${this.escapeHtml(post.content)}</p>
-                    ${post.image ? `<div class="media-container"><img src="${post.image}" alt="Post image" class="post-image"></div>` : ''}
-                    <div class="flex justify-between items-center mt-3">
-                        <div class="flex items-center space-x-4">
-                            <button class="like-btn" data-post-id="${post.id}">
-                                <i class="fas fa-heart ${post.liked ? 'liked text-red-500' : 'text-neutral-500'}"></i> ${post.like_count || 0}
+                    <p class="text-neutral-800 text-lg leading-relaxed mb-4">${this.escapeHtml(post.content)}</p>
+                    ${post.image ? `<div class="media-container-modern"><img src="${post.image}" alt="Post image" class="post-image w-full rounded-2xl shadow-lg"></div>` : ''}
+                    <div class="flex justify-between items-center mt-6 pt-4 border-t border-white/20">
+                        <div class="flex items-center space-x-6">
+                            <button class="like-btn flex items-center space-x-2 ${post.liked ? 'liked' : ''}" data-post-id="${post.id}">
+                                <i class="fas fa-heart text-lg"></i>
+                                <span class="font-medium">${post.like_count || 0}</span>
                             </button>
-                            <button class="comment-btn" data-post-id="${post.id}">
-                                <i class="fas fa-comment text-blue-500"></i> ${post.comment_count || 0}
+                            <button class="comment-btn flex items-center space-x-2" data-post-id="${post.id}">
+                                <i class="fas fa-comment text-lg"></i>
+                                <span class="font-medium">${post.comment_count || 0}</span>
+                            </button>
+                            <button class="save-btn flex items-center space-x-2" data-post-id="${post.id}">
+                                <i class="fas fa-bookmark text-lg"></i>
+                                <span class="font-medium">Save</span>
                             </button>
                         </div>
+                        <div class="text-sm text-neutral-500 bg-neutral-100 px-3 py-1 rounded-full">
+                            <i class="fas fa-eye mr-1"></i>
+                            ${Math.floor(Math.random() * 100) + 10} views
+                        </div>
                     </div>
-                    <div class="comments mt-3" data-post-id="${post.id}">
+                    <div class="comments mt-6" data-post-id="${post.id}">
                         ${post.comments ? post.comments.map(comment => `
-                            <div class="comment border-t border-neutral-100/50 pt-3 mt-3">
+                            <div class="comment">
                                 <div class="user-info">
-                                    <img src="${comment.profile_picture || 'https://via.placeholder.com/100x100/F3F4F6/6B7280?text=A'}" alt="Profile" class="user-avatar">
+                                    <img src="${comment.profile_picture || 'https://via.placeholder.com/100x100/06B6D4/FFFFFF?text=' + (comment.display_name ? comment.display_name.charAt(0) : 'A')}" alt="Profile" class="user-avatar">
                                     <div>
                                         <span class="user-name">${this.escapeHtml(comment.display_name || 'Anonymous')}</span>
-                                        <span class="timestamp">${this.getTimeAgo(new Date(comment.created_at))}</span>
+                                        <div class="timestamp">
+                                            <i class="fas fa-clock mr-1"></i>
+                                            ${this.getTimeAgo(new Date(comment.created_at))}
+                                        </div>
                                     </div>
                                 </div>
-                                <p class="text-sm text-neutral-600 mt-2">${this.escapeHtml(comment.content)}</p>
-                                ${comment.media ? `<div class="media-container"><img src="${comment.media}" alt="Comment media" class="comment-image"></div>` : ''}
-                                ${comment.tags ? `<div class="flex flex-wrap gap-2 mt-2">${JSON.parse(comment.tags).map(tag => `<span class="bg-primary-100 text-primary-600 px-2 py-1 rounded-full text-xs">${this.escapeHtml(tag)}</span>`).join('')}</div>` : ''}
+                                <p class="text-neutral-700 mt-3 leading-relaxed">${this.escapeHtml(comment.content)}</p>
+                                ${comment.media ? `<div class="media-container-modern mt-3"><img src="${comment.media}" alt="Comment media" class="comment-image w-full rounded-xl"></div>` : ''}
+                                ${comment.tags ? `<div class="flex flex-wrap gap-2 mt-3">${JSON.parse(comment.tags).map(tag => `<span class="bg-gradient-to-r from-primary-100 to-secondary-100 text-primary-700 px-3 py-1 rounded-full text-xs font-medium">${this.escapeHtml(tag)}</span>`).join('')}</div>` : ''}
                                 <div class="comment-actions">
                                     <button class="reply-btn" data-comment-id="${comment.id}">
                                         <i class="fas fa-reply"></i> Reply
@@ -361,14 +377,17 @@ class UniWhisper {
                                     ${comment.replies ? comment.replies.map(reply => `
                                         <div class="reply">
                                             <div class="user-info">
-                                                <img src="${reply.profile_picture || 'https://via.placeholder.com/100x100/F3F4F6/6B7280?text=A'}" alt="Profile" class="user-avatar">
+                                                <img src="${reply.profile_picture || 'https://via.placeholder.com/100x100/10B981/FFFFFF?text=' + (reply.display_name ? reply.display_name.charAt(0) : 'A')}" alt="Profile" class="user-avatar">
                                                 <div>
                                                     <span class="user-name">${this.escapeHtml(reply.display_name || 'Anonymous')}</span>
-                                                    <span class="timestamp">${this.getTimeAgo(new Date(reply.created_at))}</span>
+                                                    <div class="timestamp">
+                                                        <i class="fas fa-clock mr-1"></i>
+                                                        ${this.getTimeAgo(new Date(reply.created_at))}
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <p class="text-sm text-neutral-600 mt-2">${this.escapeHtml(reply.content)}</p>
-                                            ${reply.media ? `<div class="media-container"><img src="${reply.media}" alt="Reply media" class="reply-image"></div>` : ''}
+                                            <p class="text-neutral-700 mt-2 leading-relaxed">${this.escapeHtml(reply.content)}</p>
+                                            ${reply.media ? `<div class="media-container-modern mt-2"><img src="${reply.media}" alt="Reply media" class="reply-image w-full rounded-lg"></div>` : ''}
                                         </div>
                                     `).join('') : ''}
                                 </div>
