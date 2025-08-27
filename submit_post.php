@@ -31,11 +31,13 @@ if ($action === 'post' && strlen($content) > 1000) {
 // Handle file upload if present
 $image = null;
 if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-    $uploadDir = '/tmp/uploads/posts/'; // Use temp dir for Render
+    $uploadDir = __DIR__ . '/uploads/posts/'; // Use web-accessible directory
+    $webPath = 'uploads/posts/'; // Web-accessible path for URLs
     if (!file_exists($uploadDir)) mkdir($uploadDir, 0777, true);
     $fileExtension = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
     $fileName = uniqid() . '.' . $fileExtension;
     $filePath = $uploadDir . $fileName;
+    $webFilePath = $webPath . $fileName;
     $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'video/mp4'];
     if (!in_array($_FILES['image']['type'], $allowedTypes)) {
         http_response_code(400);
@@ -48,7 +50,7 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         exit;
     }
     if (move_uploaded_file($_FILES['image']['tmp_name'], $filePath)) {
-        $image = $filePath;
+        $image = $webFilePath; // Store web-accessible path
     } else {
         http_response_code(500);
         echo json_encode(['error' => 'Failed to upload file']);
