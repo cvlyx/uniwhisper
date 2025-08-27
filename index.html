@@ -455,14 +455,6 @@
             font-size: 12px;
             color: #a1a1aa;
         }
-        
-        .section-content {
-            display: block;
-        }
-        
-        .hidden {
-            display: none;
-        }
     </style>
 </head>
 <body class="text-neutral-800 overflow-x-hidden ornament">
@@ -696,6 +688,23 @@
     <!-- Scripts -->
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/simplebar@latest/dist/simplebar.min.js"></script>
+    <script>
+        // Initialize AOS
+        AOS.init({
+            duration: 800,
+            easing: 'ease-out-quart',
+            once: true,
+            offset: 50
+        });
+        
+        // Initialize custom scrollbar
+        new SimpleBar(document.getElementById('toast-container'));
+
+        // FAB click handler
+        document.getElementById('fab-post').addEventListener('click', () => {
+            document.getElementById('post-content').focus();
+        });
+    </script>
     <script src="app.js" defer></script>
 </body>
 </html>
