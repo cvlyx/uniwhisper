@@ -117,60 +117,59 @@ if (executeQuery($pdo, $createTables)) {
     exit;
 }
 
-// Add foreign key constraints after all tables are created
+// Add foreign key constraints and create indexes
 $addConstraints = <<<EOT
--- Indexes and constraints for table comments
+-- Foreign key constraints for table comments
 ALTER TABLE comments ADD FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE;
 ALTER TABLE comments ADD FOREIGN KEY (anon_id) REFERENCES users(anon_id) ON DELETE CASCADE;
-ALTER TABLE comments ADD INDEX idx_post_id (post_id);
-ALTER TABLE comments ADD INDEX idx_anon_id (anon_id);
 
--- Indexes and constraints for table follows
+-- Foreign key constraints for table follows
 ALTER TABLE follows ADD FOREIGN KEY (follower_id) REFERENCES users(anon_id) ON DELETE CASCADE;
 ALTER TABLE follows ADD FOREIGN KEY (following_id) REFERENCES users(anon_id) ON DELETE CASCADE;
 ALTER TABLE follows ADD UNIQUE (follower_id, following_id);
-ALTER TABLE follows ADD INDEX idx_follower_id (follower_id);
-ALTER TABLE follows ADD INDEX idx_following_id (following_id);
 
--- Indexes and constraints for table likes
+-- Foreign key constraints for table likes
 ALTER TABLE likes ADD FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE;
 ALTER TABLE likes ADD FOREIGN KEY (anon_id) REFERENCES users(anon_id) ON DELETE CASCADE;
 ALTER TABLE likes ADD UNIQUE (post_id, anon_id);
-ALTER TABLE likes ADD INDEX idx_post_id (post_id);
-ALTER TABLE likes ADD INDEX idx_anon_id (anon_id);
 
--- Indexes and constraints for table notifications
+-- Foreign key constraints for table notifications
 ALTER TABLE notifications ADD FOREIGN KEY (anon_id) REFERENCES users(anon_id) ON DELETE CASCADE;
 ALTER TABLE notifications ADD FOREIGN KEY (source_id) REFERENCES users(anon_id) ON DELETE CASCADE;
 ALTER TABLE notifications ADD FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE SET NULL;
 ALTER TABLE notifications ADD FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE SET NULL;
-ALTER TABLE notifications ADD INDEX source_id (source_id);
-ALTER TABLE notifications ADD INDEX post_id (post_id);
-ALTER TABLE notifications ADD INDEX comment_id (comment_id);
-ALTER TABLE notifications ADD INDEX idx_anon_id (anon_id);
-ALTER TABLE notifications ADD INDEX idx_is_read (is_read);
 
--- Indexes and constraints for table posts
+-- Foreign key constraints for table posts
 ALTER TABLE posts ADD FOREIGN KEY (anon_id) REFERENCES users(anon_id) ON DELETE CASCADE;
-ALTER TABLE posts ADD INDEX idx_anon_id (anon_id);
-ALTER TABLE posts ADD INDEX idx_created_at (created_at);
 
--- Indexes and constraints for table replies
+-- Foreign key constraints for table replies
 ALTER TABLE replies ADD FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE CASCADE;
 ALTER TABLE replies ADD FOREIGN KEY (anon_id) REFERENCES users(anon_id) ON DELETE CASCADE;
-ALTER TABLE replies ADD INDEX idx_comment_id (comment_id);
-ALTER TABLE replies ADD INDEX idx_anon_id (anon_id);
 
--- Indexes and constraints for table saved_posts
+-- Foreign key constraints for table saved_posts
 ALTER TABLE saved_posts ADD FOREIGN KEY (anon_id) REFERENCES users(anon_id) ON DELETE CASCADE;
 ALTER TABLE saved_posts ADD FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE;
 ALTER TABLE saved_posts ADD UNIQUE (anon_id, post_id);
-ALTER TABLE saved_posts ADD INDEX post_id (post_id);
-ALTER TABLE saved_posts ADD INDEX idx_anon_id (anon_id);
 
--- Indexes and constraints for table users
-ALTER TABLE users ADD UNIQUE (anon_id);
-ALTER TABLE users ADD INDEX idx_anon_id (anon_id);
+-- Create indexes
+CREATE INDEX idx_comments_post_id ON comments(post_id);
+CREATE INDEX idx_comments_anon_id ON comments(anon_id);
+CREATE INDEX idx_follows_follower_id ON follows(follower_id);
+CREATE INDEX idx_follows_following_id ON follows(following_id);
+CREATE INDEX idx_likes_post_id ON likes(post_id);
+CREATE INDEX idx_likes_anon_id ON likes(anon_id);
+CREATE INDEX idx_notifications_anon_id ON notifications(anon_id);
+CREATE INDEX idx_notifications_source_id ON notifications(source_id);
+CREATE INDEX idx_notifications_post_id ON notifications(post_id);
+CREATE INDEX idx_notifications_comment_id ON notifications(comment_id);
+CREATE INDEX idx_notifications_is_read ON notifications(is_read);
+CREATE INDEX idx_posts_anon_id ON posts(anon_id);
+CREATE INDEX idx_posts_created_at ON posts(created_at);
+CREATE INDEX idx_replies_comment_id ON replies(comment_id);
+CREATE INDEX idx_replies_anon_id ON replies(anon_id);
+CREATE INDEX idx_saved_posts_post_id ON saved_posts(post_id);
+CREATE INDEX idx_saved_posts_anon_id ON saved_posts(anon_id);
+CREATE INDEX idx_users_anon_id ON users(anon_id);
 EOT;
 
 if (executeQuery($pdo, $addConstraints)) {
