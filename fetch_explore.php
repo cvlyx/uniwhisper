@@ -24,7 +24,7 @@ try {
         LEFT JOIN likes l ON p.id = l.post_id
         LEFT JOIN comments c ON p.id = c.post_id
         LEFT JOIN users u ON p.anon_id = u.anon_id
-        WHERE p.created_at >= NOW() - INTERVAL 24 HOUR
+        WHERE p.created_at >= NOW() - INTERVAL '24 hours'
         GROUP BY p.id, p.content, p.image, p.created_at, u.display_name, u.profile_picture
         ORDER BY like_count DESC, comment_count DESC
         LIMIT 20
@@ -35,17 +35,10 @@ try {
     // Get popular tags (from post content)
     $stmt = $pdo->prepare("
         SELECT 
-            LOWER(SUBSTRING_INDEX(SUBSTRING_INDEX(tags.tag, '#', -1), ' ', 1)) as tag_name,
+            LOWER(REGEXP_REPLACE(SUBSTRING(content FROM '#[a-zA-Z0-9_]+'), '^#', '')) as tag_name,
             COUNT(*) as tag_count
-        FROM (
-            SELECT TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(content, '#', numbers.n), ' ', -1)) as tag
-            FROM posts
-            JOIN (
-                SELECT 1 n UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5
-            ) numbers ON CHAR_LENGTH(content) - CHAR_LENGTH(REPLACE(content, '#', '')) >= numbers.n - 1
-            WHERE content LIKE '%#%'
-        ) tags
-        WHERE tags.tag REGEXP '^[a-zA-Z0-9_]+$'
+        FROM posts
+        WHERE content ~ '#[a-zA-Z0-9_]+'
         GROUP BY tag_name
         ORDER BY tag_count DESC
         LIMIT 10
@@ -61,7 +54,7 @@ try {
             u.profile_picture,
             COUNT(p.id) as post_count
         FROM users u
-        LEFT JOIN posts p ON u.anon_id = p.anon_id AND p.created_at >= NOW() - INTERVAL 7 DAY
+        LEFT JOIN posts p ON u.anon_id = p.anon_id AND p.created_at >= NOW() - INTERVAL '7 days'
         GROUP BY u.anon_id, u.display_name, u.profile_picture
         ORDER BY post_count DESC
         LIMIT 10
